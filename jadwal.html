@@ -3,124 +3,94 @@
 <head>
 <meta charset="UTF-8"/>
 <mea name="viewport" content="width=device-width, initial-scale=1.0"/>
-<link rel="icon" href="">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Jomhuria&family=Mirza:wght@500&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Amiri&family=Baloo+Bhaijaan+2&family=Marhey:wght@300&family=Reem+Kufi:wght@500&display=swap" rel="stylesheet">
-
-
-<title></title> 
-
+<title>الجدول الدراسي</title>
 <style>
-	
-table, td, th{
-			border-collapse: collapse;
-          border: 5px groove #232323;
-          text-align:center ;
-              font-family:;
-          padding:5px 5px;   
-          font-size:20px;
-         
+:root{
+--fgcolor:#50586C;
+--bgcolor:#DCE2F0;
+--dark-bgcolor:#BAC0D0;
+--dark-fgcolor:#30364B;
 }
+
+body{
+background-color:var(--bgcolor);
+}
+
+table, td, th{
+border-collapse: collapse;
+border: 0.8vw groove var(--dark-fgcolor);
+text-align:center ;
+padding:1.1vw 1.1vw;   
+font-size:3.3vw;
+}
+
 td{
 font-family: 'Mirza', cursive;
-
-color:rgb(0,128,128);
-background-color:#f7f7f7;
+color:var(--fgcolor);
+background-color:var(--bgcolor);
 }
-th, #td{
-			font-family: reem kufi;
+
+th, .td{
+font-family: reem kufi;
 font-weight: 300;
-			background-color: rgb(0,128,128);
-			
-			color:#f7f7f7;
-}
-#das{
-			background-color: rgb(-30,88,88);
-color:#f3f3f3;
-			font-family: reem kufi;
-}
-#span{
-			border-bottom:3px dashed #f7f7f7;
-			
+background-color:var(--fgcolor);
+color:var(--bgcolor);
 }
 
+.dac{
+background-color: var(--dark-fgcolor);
+color:var(--dark-bgcolor);
+font-family: reem kufi;
+}
+
+span:nth-child(1){
+border-bottom:0.4vw dashed var(--dark-bgcolor);
+}
 </style>
 </head>
 <body> 
 <table>
-			<tr>
-						<td id="das">
-					<span id="span">الحصة</span>
-					<span>اليوم</span>
-      </td>
-      
-									</td>
-						<td id="td">الحصة الأولى</td>
-						<td id="td">الحصة الثانية</td>
-						<td id="td">الحصة الثالثة</td>
-						<td id="td">الحصة الرابعة</td>
-						<td id="td">الحصة الخامسة</td>
-						<td id="td">الحصة السادسة</td>
-						<td id="td">الحصة السابعة</td>
-			</tr>
-			
-			<tr>
-						
-						<th>الأحد</th>
-						<td>الحديث</td>
-						<td>الدراسات الاجتماعية</td>
-						<td>التقنية الرقمية</td>
-						<td>Mega Goal</td>
-						<td>الكيمياء</td>
-						<td>المعرفة المالية</td>
-						<td>الرياضيات</td>
-						
-			</tr>
-			
-			<tr>
-						<th>الاثنين</th>
-						<td>التربية البدنية</td>
-						<td>التربية البدنية</td>
-						<td>الكيمياء</td>
-						<td>المعرفة المالية</td>
-						<td>الرياضيات</td>
-						<td>Mega Goal</td>
-						<td>الدراسات الاجتماعية</td>
-			</tr>
-			<tr>
-						<th>الثلاثاء</th>
-						<td>Mega Goal</td>
-						<td>الدراسات الاجتماعية</td>
-						<td>الرياضيات</td>
-						<td>التقنية الرقمية</td>
-						<td>الكيمياء</td>
-						<td>المعرفة المالية</td>
-						<td></td>
-			</tr>
-			<tr>
-						<th>الأربعاء</th>
-						<td>Mega Goal</td>
-						<td>الكيمياء</td>
-						<td>الرياضيات</td>
-						<td>الدراسات الاجتماعية</td>
-						<td>التربية البدنية</td>
-						<td>الحديث</td>
-						<td></td>
-			</tr>
-			<tr>
-						<th>الخميس</th>
-						<td>Mega Goal</td>
-						<td>الرياضيات</td>
-						<td>التقنية الرقمية</td>
-						<td>الكيمياء</td>
-						<td>الدراسات الاجتماعية</td>
-						<td>الحديث</td>
-						<td></td>
-			</tr>
+<tr>
+<!-- ***** الحصة | اليوم ***** -->
+<td class="dac">
+<span>الحصة</span>
+<span>اليوم</span>
+</td>
+<!-- ***** الحصص ***** -->
+<td class="td">الحصة الأولى</td>
+<td class="td">الحصة الثانية</td>
+<td class="td">الحصة الثالثة</td>
+<td class="td">الحصة الرابعة</td>
+<td class="td">الحصة الخامسة</td>
+<td class="td">الحصة السادسة</td>
+</tr>
+<!-- ***** الأحد ***** -->
+<tr>
+<th>الأحد</th>
+<td>التوحيد</td><td>الكيمياء</td><td>Mega Goal</td><td>الرياضيات</td><td>الأحياء</td><td>اللياقة والثقافة الصحية</td> 
+</tr>
+<!-- ***** الإثنين ***** -->
+<tr>
+<th>الإثنين</th>
+<td>الفنون</td><td>التوحيد</td><td>الكيمياء</td><td>Mega Goal</td><td>الرياضيات</td><td>اللياقة والثقافة الصحية</td> 
+</tr>
+<!-- ***** الثلاثاء ***** -->
+<tr>
+<th>الثلاثاء</th>
+<td>الفنون</td><td>الأحياء</td><td>الكيمياء</td><td>Mega Goal</td><td>الرياضيات</td><td>اللياقة والثقافة الصحية</td> 
+</tr>
+<!-- ***** الأربعاء ***** -->
+<tr>
+<th>الأربعاء</th>
+<td>التوحيد</td><td>Mega Goal</td><td>الرياضيات</td><td>الأحياء</td><td>الكيمياء</td><td>اللياقة والثقافة الصحية</td> 
+</tr>
+<!-- ***** الخميس ***** -->
+<tr>
+<th>الخميس</th>
+<td>الفنون</td><td>Mega Goal</td><td>الكيمياء</td><td>الرياضيات</td><td>اللياقة والثقافة الصحية</td><td>الأحياء</td> 
+</tr>
 </table>
-
-<script>
-
-</script>
 </body>
 </html>
