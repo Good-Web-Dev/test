@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Page title</title>
+<style>
+@media print{
+body{
+margin:0 !important;
+-webkit-print-color-adjust: exact;
+}
+}
+@font-face{
+font-family:"Alkharaet";
+src:url("https://good-web-dev.github.io/WebFonts/Alkharaet.woff2") format("woff2");
+}
+p{
+background: url(https://upload.wikimedia.org/wikipedia/commons/0/00/Flag_of_Palestine.svg) no-repeat -10vw center;
+ background-size: 180vw;
+ color: #fff;
+ -webkit-text-fill-color: transparent;
+ -webkit-background-clip: text;
+ -moz-background-clip:text;
+ background-clip:text; 
+font-size:80vw;
+text-align:center;
+font-family:Alkharaet;
+-webkit-text-stroke: 3px #000;
+}
+</style>
+</head>
+<body>
+<p>a</p>
+</body>
+</html>
