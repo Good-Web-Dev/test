@@ -49,8 +49,57 @@ function submit() {
 
     let resultPlace = document.querySelector('h3');
 
-    if (count && count.length > 2) {
-      // Display the number of results as Arabic numerals
+    if (count && count.length > 2 && count.length < 11) {
+  // Display the number of results as Arabic numerals
+  resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتائج عند البحث عن: " + search_words;
+} else if (count && count.length > 10) {
+      resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتيجة عند البحث عن: " + search_words;
+    } else if (count && count.length === 2) {
+      // Display the number of results when 2 matches are found
+      resultPlace.innerText = "تم العثور على نتيجتين اثنتين عند البحث عن: " + search_words;
+    } else if (count && count.length === 1) {
+      // Display the number of results when 1 match is found
+      resultPlace.innerText = "تم العثور على نتيجة واحدة عند البحث عن: " + search_words;
+    } else {
+      // Display an error message when no matches are found
+      resultPlace.innerText = "للأسف، لم يتم العثور على ما بحثت عنه!";
+    }
+
+    // Highlight the matched search query in the text with a red color
+    let highlightedText = text.replace(new RegExp(escapedSearchWords, 'gi'), '<span style="color: red;">$&</span>');
+    document.querySelector('p').innerHTML = highlightedText;
+  }
+}function submit() {
+  // Get the text content of the <p> element
+  let text = document.querySelector('p').innerText;
+  // Split the text into an array of words
+  let ready_for_search = text.split(" ");
+
+  if (true) {
+    // Get the value of the input field
+    let search_words = document.querySelector('input').value;
+
+    // Check if the search query is empty
+    if (search_words.trim() === '') {
+      // Clear the result text and restore the original text content
+      document.querySelector('h3').innerText = "";
+      document.querySelector('p').innerHTML = text;
+      return; // Exit the function early if no search query
+    }
+
+    // Escape special characters in the search query
+    let escapedSearchWords = search_words.replace(/[.*+?^${}()|[\]\\]/gi, '\\$&');
+    // Create a regular expression with the escaped search query
+    let regex = new RegExp(escapedSearchWords, 'gi');
+    // Find all matches of the search query in the text
+    let count = ready_for_search.join(' ').match(regex);
+
+    let resultPlace = document.querySelector('h3');
+
+    if (count && count.length > 2 && count.length < 11) {
+  // Display the number of results as Arabic numerals
+  resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتائج عند البحث عن: " + search_words;
+} else if (count && count.length > 10) {
       resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتيجة عند البحث عن: " + search_words;
     } else if (count && count.length === 2) {
       // Display the number of results when 2 matches are found
