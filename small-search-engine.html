@@ -5,13 +5,12 @@
  <meta charset="UTF-8">
  <title>Page title</title>
 </head>
-<body bgcolor="#000">
+<body style="filter:invert(100%); background-color: #000; ">
 <input type="text" name="" placeholder="أدخل كلمة البحث" id="">
-<button onclick="submit()">ابحث</button>
 <br>
-<h3 style="color:#ddd;"></h3>
+<h3>هنا ستظهر نتيجة بحثك</h3>
 <br>
-<p style="color:#ddd;">لغة بايثون (Python) هي لغة برمجة عالية المستوى ومفتوحة المصدر، وهي تستخدم على نطاق واسع في مجالات مختلفة مثل تطوير الويب، وعلوم البيانات، والذكاء الاصطناعي، والتطبيقات المحمولة، والأتمتة، إلخ. تم تصميم بايثون ليكون سهل القراءة والفهم، وهو يعتبر من بين اللغات البرمجية الأكثر شيوعًا وشعبية في المجتمع التقني.
+<p>لغة بايثون (Python) هي لغة برمجة عالية المستوى ومفتوحة المصدر، وهي تستخدم على نطاق واسع في مجالات مختلفة مثل تطوير الويب، وعلوم البيانات، والذكاء الاصطناعي، والتطبيقات المحمولة، والأتمتة، إلخ. تم تصميم بايثون ليكون سهل القراءة والفهم، وهو يعتبر من بين اللغات البرمجية الأكثر شيوعًا وشعبية في المجتمع التقني.
 
 تتميز بايثون ببساطتها وقوتها، حيث توفر مجموعة واسعة من المكتبات والأدوات التي تسهل عملية التطوير وتوفر العديد من الوظائف المساعدة. بفضل بنية اللغة البسيطة والقوية، يمكن للمطورين كتابة الكود بشكل أكثر كفاءة وسرعة.
 
@@ -19,10 +18,10 @@
 
 بايثون متاحة على مختلف أنظمة التشغيل مثل ويندوز، وماك، ولينكس، وتركز على قراءة الكود بشكل أفضل من كتابته، مما يجعلها مناسبة للمبتدئين والمطورين ذوي الخبرة على حد سواء.
 
-إذا كنت ترغب في تعلم لغة بايثون، يوجد العديد من المصادر المفيدة المتاحة عبر الإنترنت، بما في ذلك دروس الفيديو والمواقع التعليمية والكتب. يمكنك أيضًا الاستفادة من المجتمعات المبرمجة والمنتديات للحصول على المساعدة وتبادل المعرفة مع المطورين الآخرِينَ
+إذا كنت ترغب في تعلم لغة بايثون، يوجد العديد من المصادر المفيدة المتاحة عبر الإنترنت، بما في ذلك دروس الفيديو والمواقع التعليمية والكتب. يمكنك أيضًا الاستفادة من المجتمعات المبرمجة والمنتديات للحصول على المساعدة وتبادل المعرفة مع المطورين الآخرين
 </p>
  <script>
-function submit() {
+document.querySelector("input").addEventListener("input", function() {
   // Get the text content of the <p> element
   let text = document.querySelector('p').innerText;
   // Split the text into an array of words
@@ -35,7 +34,7 @@ function submit() {
     // Check if the search query is empty
     if (search_words.trim() === '') {
       // Clear the result text and restore the original text content
-      document.querySelector('h3').innerText = "";
+      document.querySelector('h3').innerText = "هنا ستظهر نتيجة بحثك";
       document.querySelector('p').innerHTML = text;
       return; // Exit the function early if no search query
     }
@@ -49,74 +48,37 @@ function submit() {
 
     let resultPlace = document.querySelector('h3');
 
+    // Create the <a> element
+    var a = document.createElement('a');
+    a.style.backgroundColor = "yellow";
+    a.href = "#word";
+    a.innerHTML = search_words;
+
     if (count && count.length > 2 && count.length < 11) {
-  // Display the number of results as Arabic numerals
-  resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتائج عند البحث عن: " + search_words;
-} else if (count && count.length > 10) {
-      resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتيجة عند البحث عن: " + search_words;
+      // Display the number of results as Arabic numerals
+      resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتائج عند البحث عن: ";
+      resultPlace.appendChild(a);
+    } else if (count && count.length > 10) {
+      resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتيجة عند البحث عن: ";
+      resultPlace.appendChild(a);
     } else if (count && count.length === 2) {
       // Display the number of results when 2 matches are found
-      resultPlace.innerText = "تم العثور على نتيجتين اثنتين عند البحث عن: " + search_words;
+      resultPlace.innerText = "تم العثور على نتيجتين اثنتين عند البحث عن: ";
+      resultPlace.appendChild(a);
     } else if (count && count.length === 1) {
       // Display the number of results when 1 match is found
-      resultPlace.innerText = "تم العثور على نتيجة واحدة عند البحث عن: " + search_words;
+      resultPlace.innerText = "تم العثور على نتيجة واحدة عند البحث عن: ";
+      resultPlace.appendChild(a);
     } else {
       // Display an error message when no matches are found
       resultPlace.innerText = "للأسف، لم يتم العثور على ما بحثت عنه!";
     }
 
     // Highlight the matched search query in the text with a red color
-    let highlightedText = text.replace(new RegExp(escapedSearchWords, 'gi'), '<span style="color: red;">$&</span>');
+    let highlightedText = text.replace(new RegExp(escapedSearchWords, 'gi'), '<span id="word" style="background-color: yellow;">$&</span>');
     document.querySelector('p').innerHTML = highlightedText;
   }
-}function submit() {
-  // Get the text content of the <p> element
-  let text = document.querySelector('p').innerText;
-  // Split the text into an array of words
-  let ready_for_search = text.split(" ");
-
-  if (true) {
-    // Get the value of the input field
-    let search_words = document.querySelector('input').value;
-
-    // Check if the search query is empty
-    if (search_words.trim() === '') {
-      // Clear the result text and restore the original text content
-      document.querySelector('h3').innerText = "";
-      document.querySelector('p').innerHTML = text;
-      return; // Exit the function early if no search query
-    }
-
-    // Escape special characters in the search query
-    let escapedSearchWords = search_words.replace(/[.*+?^${}()|[\]\\]/gi, '\\$&');
-    // Create a regular expression with the escaped search query
-    let regex = new RegExp(escapedSearchWords, 'gi');
-    // Find all matches of the search query in the text
-    let count = ready_for_search.join(' ').match(regex);
-
-    let resultPlace = document.querySelector('h3');
-
-    if (count && count.length > 2 && count.length < 11) {
-  // Display the number of results as Arabic numerals
-  resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتائج عند البحث عن: " + search_words;
-} else if (count && count.length > 10) {
-      resultPlace.innerHTML = "تم العثور على " + count.length.toLocaleString('ar-SA') + " نتيجة عند البحث عن: " + search_words;
-    } else if (count && count.length === 2) {
-      // Display the number of results when 2 matches are found
-      resultPlace.innerText = "تم العثور على نتيجتين اثنتين عند البحث عن: " + search_words;
-    } else if (count && count.length === 1) {
-      // Display the number of results when 1 match is found
-      resultPlace.innerText = "تم العثور على نتيجة واحدة عند البحث عن: " + search_words;
-    } else {
-      // Display an error message when no matches are found
-      resultPlace.innerText = "للأسف، لم يتم العثور على ما بحثت عنه!";
-    }
-
-    // Highlight the matched search query in the text with a red color
-    let highlightedText = text.replace(new RegExp(escapedSearchWords, 'gi'), '<span style="color: red;">$&</span>');
-    document.querySelector('p').innerHTML = highlightedText;
-  }
-}
+});
 </script>
 </body>
 </html>
