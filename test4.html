@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Page title</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body>
+<marquee behavior="alternate" direction="right">
+  No Reaction!
+</marquee>
+<textarea cols="45" rows="15"></textarea>
+<p></p>
+ <script>
+var input = document.querySelector('textarea');
+
+input.addEventListener('input', function () {
+  try {
+    eval(input.value);
+document.querySelector('marquee').innerHTML = "No Reaction!";
+  } catch (error) {
+    console.error();
+    document.querySelector('marquee').innerHTML = error.message;
+  }
+});
+</script>
+</body>
+</html>
