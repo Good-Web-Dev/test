@@ -5,10 +5,11 @@
  <title>Page title</title>
 </head>
 <body>
+<button onclick="go()">goooo</button>
  <script>
-  const urlParams = new URLSearchParams(window.location.search);
+function go(){  const urlParams = new URLSearchParams(window.location.search);
   const bgcolor = urlParams.get('bgcolor');
-document.body.style.background = bgcolor;
+document.body.style.background = bgcolor;}
 
 </script>
 </body>
