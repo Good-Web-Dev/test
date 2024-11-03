@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> أسئلة تعريفية في الكيمياءادعوا لي</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .question {
+            margin: 10px 0;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+        }
+        .question:hover {
+            background-color: #d6dbdf;
+        }
+        .answer {
+            display: none;
+            padding-top: 10px;
+            color: #2c3e50;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>أسئلة تعريفية في الكيمياء</h1>
+
+    <!-- الأسئلة والإجابات -->
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو تعريف المحلول المشبع؟</p>
+        <div class="answer">المحلول المشبع هو المحلول الذي يحتوي على أقصى كمية من المذاب يمكن إذابتها في مذيب معين عند درجة حرارة معينة.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بعملية الذوبان؟</p>
+        <div class="answer">الذوبان هو العملية التي يتم فيها توزيع جزيئات المذاب داخل المذيب لتكوين محلول متجانس.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الخواص التجميعية للمحاليل؟</p>
+        <div class="answer">الخواص التجميعية هي خواص تعتمد على عدد الجسيمات المذابة في المحلول وليس على طبيعتها الكيميائية.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو التأين الإضافي؟</p>
+        <div class="answer">التأين الإضافي هو زيادة في تركيز الأيونات في المحلول نتيجة تفاعل جزيئات الماء مع المذاب.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي نسبة التركيز في المحلول؟</p>
+        <div class="answer">نسبة التركيز هي كمية المذاب الموجودة في كمية معينة من المحلول أو المذيب.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو ضغط البخار للمحلول؟</p>
+        <div class="answer">ضغط البخار للمحلول هو الضغط الناتج عن جزيئات المذيب التي تتبخر في محلول عند درجة حرارة معينة.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بالحركة البراونية؟</p>
+        <div class="answer">الحركة البراونية هي الحركة العشوائية التي تقوم بها جزيئات المادة المذابة داخل المحلول بسبب تصادم الجزيئات.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما تعريف الحمض حسب نظرية برونستد-لوري؟</p>
+        <div class="answer">الحمض حسب نظرية برونستد-لوري هو المادة التي تعطي أيون الهيدروجين (H⁺) في التفاعل الكيميائي.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما تعريف القاعدة حسب نظرية برونستد-لوري؟</p>
+        <div class="answer">القاعدة حسب نظرية برونستد-لوري هي المادة التي تستقبل أيون الهيدروجين (H⁺) في التفاعل الكيميائي.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو المحلول القاعدي؟</p>
+        <div class="answer">المحلول القاعدي هو المحلول الذي يحتوي على تركيز أعلى من أيونات (OH⁻) ويكون pH المحلول أعلى من 7.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو المحلول الحمضي؟</p>
+        <div class="answer">المحلول الحمضي هو المحلول الذي يحتوي على تركيز أعلى من أيونات (H⁺) ويكون pH المحلول أقل من 7.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو التفاعل بين الحمض والقاعدة؟</p>
+        <div class="answer">التفاعل بين الحمض والقاعدة هو تفاعل ينتج عنه ملح وماء، حيث يتفاعل الحمض مع القاعدة ويعادل كل منهما الآخر.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو تعريف المخلوط؟</p>
+        <div class="answer">المخلوط هو مزيج من مادتين أو أكثر مع عدم حدوث تفاعل كيميائي بينهما.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بالخلية الجلفانية؟</p>
+        <div class="answer">الخلية الجلفانية هي نوع من الخلايا الكهروكيميائية التي تحول الطاقة الكيميائية إلى طاقة كهربائية عبر تفاعل أكسدة واختزال.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما تعريف التأكسد والاختزال؟</p>
+        <div class="answer">التأكسد هو فقدان الإلكترونات من مادة ما، بينما الاختزال هو اكتساب الإلكترونات.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بالخلايا الكهروكيميائية؟</p>
+        <div class="answer">الخلايا الكهروكيميائية هي خلايا تقوم بتحويل الطاقة الكيميائية إلى طاقة كهربائية أو العكس.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو عامل الاختزال؟</p>
+        <div class="answer">عامل الاختزال هو المادة التي تفقد إلكترونات في تفاعل كيميائي وتسمح لمادة أخرى باكتسابها.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو عامل التأكسد؟</p>
+        <div class="answer">عامل التأكسد هو المادة التي تكتسب إلكترونات في تفاعل كيميائي وتسمح لمادة أخرى بفقدانها.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الرابطة الأيونية؟</p>
+        <div class="answer">الرابطة الأيونية هي رابطة تنشأ بين ذرتين عندما تقوم إحداهما بفقدان إلكترونات وتكتسبها الأخرى.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الرابطة التساهمية؟</p>
+        <div class="answer">الرابطة التساهمية هي رابطة تتكون عندما تشترك ذرتان في أزواج من الإلكترونات.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو المحلول المتعادل؟</p>
+        <div class="answer">المحلول المتعادل هو المحلول الذي يكون فيه تركيز أيونات الهيدروجين مساوٍ لتركيز أيونات الهيدروكسيد، ويكون pH=7.</div>
+    </div>
+
+</div>
+
+<script>
+    function toggleAnswer(element) {
+        const answer = element.querySelector('.answer');
+        answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+    }
+</script>
+
+
+<div class="container">
+    <h1>أسئلة تعريفية في الكيمياء</h1>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الحركة البراونية؟</p>
+        <div class="answer">الحركة البراونية هي الحركة العشوائية الدائمة لجسيمات المذاب الصغيرة في المحلول بسبب تصادمها المستمر مع جزيئات المذيب.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بالخواص التجميعية للمحاليل؟</p>
+        <div class="answer">الخواص التجميعية تعتمد على عدد الجسيمات الذائبة في المحلول، وتشمل انخفاض الضغط البخاري، وارتفاع درجة الغليان، وانخفاض درجة التجمد.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو ضغط البخار للمحلول؟</p>
+        <div class="answer">ضغط البخار هو الضغط الناتج عن جزيئات المذيب التي تتبخر فوق سطح المحلول عند درجة حرارة معينة.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما تعريف الخلية الجلفانية؟</p>
+        <div class="answer">الخلية الجلفانية هي جهاز يحول الطاقة الكيميائية إلى طاقة كهربائية نتيجة لتفاعل الأكسدة والاختزال.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو التأين الإضافي؟</p>
+        <div class="answer">التأين الإضافي هو زيادة عدد الأيونات في المحلول بسبب تفاعل جزيئات الماء مع جزيئات المذاب.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الرابطة الأيونية؟</p>
+        <div class="answer">الرابطة الأيونية هي الرابطة التي تنشأ بين ذرتين عندما تتنازل إحداهما عن إلكترونات وتكتسبها الأخرى، مثل ارتباط الصوديوم والكلور.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هي الرابطة التساهمية؟</p>
+        <div class="answer">الرابطة التساهمية تحدث عندما تتشارك ذرتان في أزواج من الإلكترونات للوصول إلى حالة الاستقرار.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو التفاعل بين الحمض والقاعدة؟</p>
+        <div class="answer">التفاعل بين الحمض والقاعدة هو تفاعل ينتج عنه ماء وملح نتيجة تفاعل أيونات الهيدروجين مع أيونات الهيدروكسيد.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما المقصود بتفاعلات الأكسدة والاختزال؟</p>
+        <div class="answer">تفاعلات الأكسدة والاختزال هي تفاعلات كيميائية تتضمن انتقال الإلكترونات بين المواد؛ الأكسدة هي فقدان الإلكترونات، والاختزال هو اكتسابها.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو تعريف الحمض والقاعدة حسب برونستد-لوري؟</p>
+        <div class="answer">حسب برونستد-لوري، الحمض هو المادة التي تمنح أيونات الهيدروجين، والقاعدة هي المادة التي تستقبلها.</div>
+    </div>
+
+    <div class="question" onclick="toggleAnswer(this)">
+        <p>ما هو التحليل الكهربائي؟</p>
+        <div class="answer">التحليل الكهربائي هو عملية تستخدم التيار الكهربائي لإجراء تفاعل كيميائي غير تلقائي، مثل تحلل الماء إلى هيدروجين وأكسجين.</div>
+    </div>
+
+</div>
+
+<script>
+    function toggleAnswer(element) {
+        const answer = element.querySelector('.answer');
+        answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+    }
+</script>
+
+</body>
+</html>
