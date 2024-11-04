@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en/ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مساعد الحفظ 🫡</title>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Alkalami&family=Changa:wght@200..800&family=Handjet:wght@100..900&family=IBM+Plex+Sans+Arabic:wght@100;200;300;400;500;600;700&family=Readex+Pro:wght@160..700&display=swap');
+*{
+transition:0.2s all ease-in-out;
+-webkit-transition:0.2s all ease-in-out;
+font-family: IBM PLEX SANS ARABIC;
+font-weight:500;
+-webkit-tap-highlight-color:transparent;
+}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+font-size:16px;
+        }
+
+        del {
+            text-shadow:0 0 15px #000;
+text-decoration:none;
+color:transparent;
+font-size:16px;
+        }
+        .visible {
+            text-shadow:none;
+color:black;
+        }
+        button {
+            margin-top: 20px;
+            padding: 5px 10px;
+            font-size: 16px;
+            cursor: pointer;
+background: transparent;
+border-color:#4c825d;
+border-width:4px;
+border-radius: 2px;
+font-weight: 600;
+        }
+#words-container{
+text-align:justify;
+direction:ltr;
+}
+h3{
+font-size: 18px;
+text-align:center;
+border-top:#4c825d double 6px;
+border-bottom:#4c825d double 6px;
+border-radius: 20px 10px;
+font-weight:700;
+padding:10px 0;
+}
+.audio-container{
+text-align: center;
+margin:20px auto;
+display: block;
+padding:8px 3px 5px 3px;
+}
+.subtitle{
+text-align: center;
+margin:-15px auto auto auto;
+font-size: 16px;
+width:fit-content;
+padding: 5px;
+border-radius:4px;
+opacity: 0;
+transition: opacity 0.2s ease-in-out;
+height:70px;
+direction: ltr;
+}
+.fade-in {
+opacity: 1;
+}
+.fade-out {
+opacity: 0;
+}
+   </style>
+</head>
+<body>
+<h3>المقطع الصوتي للقطعة:</h3>
+<div class="audio-container"><audio src="audio.mp3" id="audioPlayer" controls style="width:100%;"></audio></div>
+<div class="subtitle" id="subtitleDisplay"></div>
+<h3>القطعة:</h3>
+<div id="words-container">
+   <del>Influential</del> <del>people</del> <del>are</del> <del>those</del> 
+    <del>who</del> <del>have</del> <del>the</del> <del>power</del> <del>to</del> <del>affect</del> <del>the</del> 
+    <del>ideas,</del> <del>actions,</del> <del>and</del> <del>decisions</del> <del>of</del> <del>others.</del> 
+    <del>They</del> <del>can</del> <del>be</del> <del>leaders,</del> <del>activists,</del> <del>artists,</del> 
+    <del>scientists,</del> <del>or</del> <del>anyone</del> <del>who</del> <del>has</del> <del>made</del> 
+    <del>a</del> <del>significant</del> <del>impact</del> <del>on</del> <del>society.</del> <del>These</del> 
+    <del>persons</del> <del>can</del> <del>shape</del> <del>the</del> <del>world</del> <del>we</del> <del>live</del> 
+    <del>in.</del> <del>Some</del> <del>influential</del> <del>people</del> <del>are</del> <del>remembered</del> 
+    <del>for</del> <del>their</del> <del>contributions</del> <del>to</del> <del>history,</del> <del>such</del> 
+    <del>as</del> <del>King</del> <del>Faisal,</del> <del>while</del> <del>others</del> <del>still</del> 
+    <del>make</del> <del>a</del> <del>difference</del> <del>in</del> <del>our</del> <del>daily</del> 
+    <del>lives</del> <del>such</del> <del>as</del> <del>Prince</del> <del>Muhammad</del> <del>bin</del> 
+    <del>Salman.</del>
+</div>
+<button id="reveal-button">إظهار الكلمة التالية</button>
+
+<script>
+    const words = document.querySelectorAll('del');
+    let currentIndex = 0;
+
+    document.getElementById('reveal-button').addEventListener('click', function() {
+        if (currentIndex > 0) {
+            words[currentIndex - 1].classList.remove('visible');
+        }
+        if (currentIndex < words.length) {
+            words[currentIndex].classList.add('visible');
+            currentIndex++;
+        } else {
+            currentIndex = 0; // Reset to start
+            words.forEach(word => word.classList.remove('visible')); // Hide all
+        }
+    });
+
+const subtitles = [
+    { start: 0, end: 5, word: "Influential people are those who have the power to affect the ideas, actions, and decisions of others." },
+{start:5, end:6, word:""},
+    { start: 6, end: 13, word: "They can be leaders, activists, artists, scientists, or anyone who has made a significant impact on society." },
+{start:13, end:14, word:""},
+    { start: 14, end: 16, word: "These persons can shape the world we live in." },
+{start:16, end:17, word:""},
+    { start: 17, end: 20, word: "Some influential people are remembered for their contributions to history," },
+    { start: 20, end: 26, word: "such as King Faisal, while others still make a difference in our daily lives such as Prince Muhammad bin Salman." }
+];
+
+const audioPlayer = document.getElementById('audioPlayer');
+const subtitleDisplay = document.getElementById('subtitleDisplay');
+
+let currentSubtitle = null;
+
+audioPlayer.addEventListener('timeupdate', () => {
+    const currentTime = audioPlayer.currentTime;
+    const subtitle = subtitles.find(sub => currentTime >= sub.start && currentTime < sub.end);
+
+    if (subtitle && subtitle !== currentSubtitle) {
+        // Fade out the current subtitle if it exists
+        if (currentSubtitle) {
+            subtitleDisplay.classList.remove('fade-in');
+            subtitleDisplay.classList.add('fade-out');
+
+            // Wait for the fade-out to finish before changing the text
+            setTimeout(() => {
+                subtitleDisplay.textContent = subtitle.word;
+                subtitleDisplay.classList.remove('fade-out');
+                subtitleDisplay.classList.add('fade-in');
+            }, 200); // Match this to the CSS transition duration
+        } else {
+            // If there's no current subtitle, just display the new one
+            subtitleDisplay.textContent = subtitle.word;
+            subtitleDisplay.classList.add('fade-in');
+        }
+
+        currentSubtitle = subtitle;
+    } else if (!subtitle && currentSubtitle) {
+        // Fade out if there's no subtitle
+        subtitleDisplay.classList.remove('fade-in');
+        subtitleDisplay.classList.add('fade-out');
+        currentSubtitle = null;
+    }
+});
+
+// Hide subtitle when audio ends
+audioPlayer.addEventListener('ended', () => {
+    subtitleDisplay.classList.remove('fade-in');
+    subtitleDisplay.classList.add('fade-out');
+    currentSubtitle = null;
+});
+</script>
+</body>
+</html>
