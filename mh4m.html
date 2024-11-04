@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مساعد الحفظ 🫡</title>
+    <title>مساعد الحفظ الخاص بمصطفى 🫡</title>
     <style>
 @import url('https://fonts.googleapis.com/css2?family=Alkalami&family=Changa:wght@200..800&family=Handjet:wght@100..900&family=IBM+Plex+Sans+Arabic:wght@100;200;300;400;500;600;700&family=Readex+Pro:wght@160..700&display=swap');
 *{
@@ -81,24 +81,23 @@ opacity: 0;
 </head>
 <body>
 <h3>المقطع الصوتي للقطعة:</h3>
-<div class="audio-container"><audio src="audio.mp3" id="audioPlayer" controls style="width:100%;"><source src="audio.mp3" type="audio/mpeg">
+<div class="audio-container"><audio src="audio4m.mp3" id="audioPlayer" controls style="width:100%;"><source src="audio4m.mp3" type="audio/mpeg">
 </audio></div>
 <div class="subtitle" id="subtitleDisplay"></div>
 <h3>القطعة:</h3>
 <div id="words-container">
-   <del>Influential</del> <del>people</del> <del>are</del> <del>those</del> 
-    <del>who</del> <del>have</del> <del>the</del> <del>power</del> <del>to</del> <del>affect</del> <del>the</del> 
-    <del>ideas,</del> <del>actions,</del> <del>and</del> <del>decisions</del> <del>of</del> <del>others.</del> 
-    <del>They</del> <del>can</del> <del>be</del> <del>leaders,</del> <del>activists,</del> <del>artists,</del> 
-    <del>scientists,</del> <del>or</del> <del>anyone</del> <del>who</del> <del>has</del> <del>made</del> 
-    <del>a</del> <del>significant</del> <del>impact</del> <del>on</del> <del>society.</del> <del>These</del> 
-    <del>persons</del> <del>can</del> <del>shape</del> <del>the</del> <del>world</del> <del>we</del> <del>live</del> 
-    <del>in.</del> <del>Some</del> <del>influential</del> <del>people</del> <del>are</del> <del>remembered</del> 
-    <del>for</del> <del>their</del> <del>contributions</del> <del>to</del> <del>history,</del> <del>such</del> 
-    <del>as</del> <del>King</del> <del>Faisal,</del> <del>while</del> <del>others</del> <del>still</del> 
-    <del>make</del> <del>a</del> <del>difference</del> <del>in</del> <del>our</del> <del>daily</del> 
-    <del>lives</del> <del>such</del> <del>as</del> <del>Prince</del> <del>Muhammad</del> <del>bin</del> 
-    <del>Salman.</del>
+   <del>My</del> <del>favorite</del> <del>person</del> <del>is</del> <del>my</del> <del>mom.</del> 
+<del>She</del> <del>is</del> <del>very</del> <del>kind</del> <del>and</del> <del>loving.</del> 
+<del>She</del> <del>always</del> <del>cooks</del> <del>delicious</del> <del>food</del> <del>for</del> 
+<del>us.</del> <del>She</del> <del>is</del> <del>also</del> <del>very</del> <del>patient</del> 
+<del>and</del> <del>helps</del> <del>me</del> <del>with</del> <del>my</del> <del>homework.</del> 
+<del>My</del> <del>mom</del> <del>is</del> <del>a</del> <del>hard</del> <del>worker</del> 
+<del>and</del> <del>takes</del> <del>care</del> <del>of</del> <del>our</del> <del>family.</del> 
+<del>I</del> <del>love</del> <del>spending</del> <del>time</del> <del>with</del> <del>her.</del> 
+<del>She</del> <del>is</del> <del>my</del> <del>best</del> <del>friend.</del> <del>My</del> <del>mom</del> <del>is</del> <del>the</del> <del>kindest</del> <del>person</del> 
+<del>I</del> <del>know.</del> <del>She</del> <del>always</del> <del>listens</del> <del>to</del> 
+<del>me</del> <del>and</del> <del>gives</del> <del>me</del> <del>good</del> <del>advice.</del> 
+<del>I</del> <del>look</del> <del>up</del> <del>to</del> <del>her</del> <del>so</del> <del>much.</del>
 </div>
 <button id="reveal-button">إظهار الكلمة التالية</button>
 
@@ -120,15 +119,14 @@ opacity: 0;
     });
 
 const subtitles = [
-    { start: 0, end: 5, word: "Influential people are those who have the power to affect the ideas, actions, and decisions of others." },
-{start:5, end:6, word:""},
-    { start: 6, end: 13, word: "They can be leaders, activists, artists, scientists, or anyone who has made a significant impact on society." },
-{start:13, end:14, word:""},
-    { start: 14, end: 16, word: "These persons can shape the world we live in." },
-{start:16, end:17, word:""},
-    { start: 17, end: 20, word: "Some influential people are remembered for their contributions to history," },
-    { start: 20, end: 27, word: "such as King Faisal, while others still make a difference in our daily lives such as Prince Muhammad bin Salman." }
+    { start: 0, end: 6, word: "My favorite person is my mom. She is very kind and loving. She always cooks delicious food for us." },
+    { start: 6, end: 9, word: "She is also very patient and helps me with my homework." },
+{start:9, end:10, word:""},
+    { start: 10, end: 15, word: "My mom is a hard worker and takes care of our family. I love spending time with her." },
+    { start: 15, end: 21, word: "She is my best friend. My mom is the kindest person I know. She always listens to me and gives" },
+    { start: 21, end: 25, word: "me good advice. I look up to her so much." }
 ];
+
 
 const audioPlayer = document.getElementById('audioPlayer');
 const subtitleDisplay = document.getElementById('subtitleDisplay');
