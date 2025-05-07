@@ -1,0 +1,4554 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.6">
+    <title>أداة ختم ملفات PDF المحسنة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Import Sweet Alert -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Import the Arabic fonts CSS -->
+    <link rel="stylesheet" href="https://good-web-dev.github.io/WebFonts-v2/fonts.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                    }
+                }
+            }
+        }
+        
+        // Check for dark mode preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+    <style>
+        /* Additional styles for Arabic fonts */
+        body {
+            font-family: 'Cairo', 'Noto Kufi Arabic', sans-serif;
+        }
+        
+        /* Prevents zoom on input fields in mobile Safari */
+        @media only screen and (max-width: 767px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Styles for stamp resizing */
+        .stamp-resize-handle-width {
+            background-color: #5D5CDE;
+            color: white;
+            border-radius: 50%;
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        
+        .stamp-resize-handle-height {
+            background-color: #5D5CDE;
+            color: white;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        
+        .stamp-resize-handle-both {
+            background-color: #5D5CDE;
+            color: white;
+            border-radius: 50%;
+            position: absolute;
+            right: -10px;
+            bottom: -10px;
+            cursor: nwse-resize;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        
+        .stamp-container {
+            position: absolute;
+            overflow: visible;
+            text-align: center;
+            min-width: 20px;
+            min-height: 20px;
+            padding: 3px;
+            box-sizing: border-box;
+            cursor: move;
+            border: 1px dashed transparent;
+            z-index: 20;
+        }
+        
+        .stamp-container:hover {
+            border: 1px dashed #5D5CDE;
+        }
+        
+        .stamp-content {
+            pointer-events: none;
+            user-select: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Changed to center */
+            direction: rtl;
+            text-align: center; /* Changed to center */
+        }
+
+        /* Remove resizing cursor from stamp content */
+        .stamp-content {
+            cursor: default;
+        }
+        
+        /* Loading animation */
+        .loading-spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid #5D5CDE;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Dark mode for loading spinner */
+        .dark .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #5D5CDE;
+        }
+
+        /* Disabled button style */
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* New styles for field selection */
+        .selection-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: all;
+        }
+        
+        .answer-field {
+            position: absolute;
+            border: 2px solid #5D5CDE;
+            background-color: rgba(93, 92, 222, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            user-select: none;
+            pointer-events: all;
+            cursor: default; /* Default cursor - not movable unless in edit mode */
+        }
+        
+        .answer-field .field-number {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            background-color: #5D5CDE;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            opacity:0.7;
+        }
+        
+        .answer-field .delete-field {
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+            opacity:0.7;
+        }
+        
+        .answer-field .edit-field {
+            position: absolute;
+            bottom: -12px;
+            left: -12px;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+            opacity:0.7;
+        }
+        
+        .answer-field .save-field {
+            position: absolute;
+            bottom: -12px;
+            left: -12px;
+            background-color: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            z-index: 10;
+            opacity:0.7;
+        }
+
+        .answer-field.editing {
+            border: 2px solid #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+            cursor: move; /* Only show move cursor when in edit mode */
+        }
+        
+        .field-resize-handle {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            display: none;
+            z-index: 10;
+            opacity:0.7;
+        }
+        
+        .field-resize-handle.width {
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+            opacity:0.7;
+        }
+        
+        .field-resize-handle.height {
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+            opacity:0.7;
+        }
+        
+        .field-resize-handle.both {
+            right: -12px;
+            bottom: -12px;
+            cursor: nwse-resize;
+            opacity:0.7;
+        }
+        
+        .answer-field.editing .field-resize-handle {
+            display: block;
+            opacity:0.7;
+        }
+        
+        .answer-field.editing .edit-field {
+            display: none;
+            opacity:0.7;
+        }
+        
+        .answer-field.editing .save-field {
+            display: flex;
+            opacity:0.7;
+        }
+
+        .delete-field:hover {
+            background-color: #dc2626;
+        }
+        
+        .edit-field:hover {
+            background-color: #2563eb;
+        }
+        
+        .save-field:hover {
+            background-color: #059669;
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        
+        .mode-button {
+            padding: 8px 16px;
+            margin: 0 4px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .mode-button.active {
+            background-color: #5D5CDE;
+            color: white;
+        }
+        
+        .mode-selector .mode-button:not(.active) {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .dark .mode-selector .mode-button:not(.active) {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+        
+        .badge-primary {
+            background-color: #5D5CDE;
+            color: white;
+        }
+        
+        /* Tab navigation */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 16px;
+        }
+        
+        .dark .tab-nav {
+            border-bottom-color: #374151;
+        }
+        
+        .tab-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab-item.active {
+            border-bottom-color: #5D5CDE;
+            color: #5D5CDE;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Field dimensions popup */
+        .field-dimensions {
+            position: absolute;
+            top: -35px;
+            right: 0;
+            background-color: #5D5CDE;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* App layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .app-toolbar {
+            width: 100%;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: #f9fafb;
+        }
+
+        .dark .app-toolbar {
+            background-color: #111827;
+        }
+
+        .app-main {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .app-sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 80px;
+            align-self: flex-start;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .app-content {
+            flex-grow: 1;
+            position: relative;
+            overflow: auto;
+            min-width: 0; /* This prevents flex items from overflowing */
+            height: 100%;
+        }
+
+        .pdf-container {
+            position: relative;
+            background-color: #f3f4f6;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            width: 100%;
+            height: fit-content;
+            min-height: 500px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dark .pdf-container {
+            background-color: #1f2937;
+        }
+
+        /* Modal styles */
+        .app-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 80;
+height:100vh;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            max-width: 32rem;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .dark .modal-content {
+            background-color: #1f2937;
+        }
+
+        /* SweetAlert overrides for RTL */
+        .swal2-popup {
+            font-family: 'Cairo', 'Noto Kufi Arabic', sans-serif !important;
+        }
+
+        .swal2-container {
+            width:100%;
+            height:100%;
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            right:0;
+            bottom: 0;
+        }
+
+        .swal2-actions {
+            flex-direction: row-reverse;
+        }
+
+        /* Stamp is being edited */
+        .stamp-container.editing {
+            border: 2px dashed #5D5CDE;
+            background-color: rgba(93, 92, 222, 0.05);
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .app-main {
+                flex-direction: column;
+            }
+
+            .app-sidebar {
+                width: 100%;
+                position: relative;
+                top: 0;
+            }
+
+            .answer-field .field-number,
+            .answer-field .delete-field,
+            .answer-field .edit-field,
+            .answer-field .save-field,
+            .stamp-resize-handle-width,
+            .stamp-resize-handle-height,
+            .stamp-resize-handle-both,
+            .field-resize-handle {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .field-resize-handle.width {
+                right: -16px;
+            }
+            
+            .field-resize-handle.height {
+                bottom: -16px;
+            }
+            
+            .field-resize-handle.both {
+                right: -16px;
+                bottom: -16px;
+            }
+        }
+        
+        /* PDF viewer container style */
+        #pdfContainer {
+            position: relative;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+            max-width: 100%;
+            max-height: 100%;
+            overflow: visible;
+        }
+
+        /* Premium badge styles */
+        .premium-badge {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .premium-feature {
+            position: relative;
+        }
+
+        .premium-lock {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #FFD700;
+            font-size: 1rem;
+opacity:0.8;
+        }
+
+        /* Premium dialog styles */
+        .premium-dialog {
+            z-index: 100;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+
+        .premium-dialog-header {
+            padding: 1.5rem;
+            background: rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .premium-dialog-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .premium-dialog-body {
+            padding: 1.5rem;
+        }
+
+        .premium-dialog-footer {
+            padding: 1rem 1.5rem;
+            background: rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .premium-feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .premium-feature-icon {
+            margin-left: 1rem;
+            background: rgba(255,255,255,0.2);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .premium-cta-button {
+            background: #FFD700;
+            color: #000;
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .premium-cta-button:hover {
+            background: #FFC000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .premium-close-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            margin-left: 1rem;
+        }
+
+        .premium-shine {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #FFD700, transparent);
+            animation: shine 0.4s infinite;
+        }
+
+/* SweetAlert Premium Dialog Styling */
+.premium-swal-popup {
+    border-radius: 16px;
+    padding: 0 0 8px 0;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+.premium-swal-title {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    color: white;
+    font-weight: bold;
+    position: relative;
+}
+
+.premium-swal-title::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+transform:translateX(100%);
+	width:100%;
+	height:3px;
+	position: absolute;
+	z-index:1;
+  /* 
+  CSS Gradient - complete browser support from http://www.colorzilla.com/gradient-editor/ 
+  */
+  background: -moz-linear-gradient(left, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 50%, rgba(128,186,232,0) 99%, rgba(125,185,232,0) 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%,rgba(255,255,255,0)), color-stop(50%,rgba(255,255,255,0.8)), color-stop(99%,rgba(128,186,232,0)), color-stop(100%,rgba(125,185,232,0))); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left, rgba(255,255,255,0) 0%,rgba(255,255,255,0.8) 50%,rgba(128,186,232,0) 99%,rgba(125,185,232,0) 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left, rgba(255,255,255,0) 0%,rgba(255,255,255,0.8) 50%,rgba(128,186,232,0) 99%,rgba(125,185,232,0) 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left, rgba(255,255,255,0) 0%,rgba(255,255,255,0.8) 50%,rgba(128,186,232,0) 99%,rgba(125,185,232,0) 100%); /* IE10+ */
+	background: linear-gradient(to right, rgba(255,255,255,0) 0%,rgba(255,255,255,0.8) 50%,rgba(128,186,232,0) 99%,rgba(125,185,232,0) 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#00ffffff', endColorstr='#007db9e8',GradientType=1 ); /* IE6-9 */
+    background: linear-gradient(90deg, transparent, #FFD700, transparent);
+    animation: shine 2s infinite;
+}
+
+.premium-swal-content {
+    padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+    color: white;
+}
+
+.premium-swal-confirm-button {
+    background: #FFD700 !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+    transition: all 0.2s !important;
+}
+
+.premium-swal-confirm-button:hover {
+    background: #FFC000 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+.premium-swal-cancel-button {
+    color: white !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+}
+
+        @keyframes shine {
+            0% { transform:translateX(-100%); }
+            100% { transform:translateX(100%); }
+        }
+
+        .premium-badge-large {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .premium-badge-icon {
+            margin-left: 8px;
+            font-size: 1.2rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-left: 1rem;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background-color: #5D5CDE;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+
+        .user-name {
+            font-weight: 500;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .premium-indicator {
+            margin-right: 4px;
+            font-size: 0.7rem;
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div class="app-container" style="min-width: ;">
+        <div class="app-toolbar bg-white dark:bg-gray-900 shadow-sm p-4 w-full">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-primary" style="text-align:center;">أداة ختم ملفات PDF المحسنة</h1>
+                <div id="userInfoDisplay" class="user-info hidden">
+                    <div class="user-avatar">
+                        <span id="userInitial"></span>
+                    </div>
+                    <div>
+                        <div class="flex items-center">
+                            <span id="userName" class="user-name"></span>
+                            <span id="premiumBadge" class="premium-indicator hidden"><i class="fas fa-crown"></i></span>
+                        </div>
+                        <span id="userClass" class="text-xs text-gray-500 dark:text-gray-400"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mode selector -->
+            <div class="mode-selector mt-4">
+                <button id="viewModeBtn" class="mode-button active">
+                    <i class="fas fa-eye ml-1"></i> معاينة
+                </button>
+                <button id="fieldModeBtn" class="mode-button premium-feature">
+                    <i class="fas fa-vector-square ml-1"></i> إنشاء حقول
+                    <i class="fas fa-lock premium-lock"></i>
+                </button>
+                <button id="stampModeBtn" class="mode-button premium-feature">
+                    <i class="fas fa-stamp ml-1"></i> ختم
+                    <i class="fas fa-lock premium-lock"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="app-main p-4 w-full">
+            <div class="app-sidebar bg-gray-100 dark:bg-gray-800 p-4 rounded-lg shadow">
+                <!-- Tab navigation -->
+                <div class="tab-nav">
+                    <div class="tab-item active" data-tab="files">الملفات</div>
+                    <div class="tab-item" data-tab="fields">الحقول</div>
+                    <div class="tab-item" data-tab="stamps">الأختام</div>
+                    <div class="tab-item" data-tab="settings">الإعدادات</div>
+                </div>
+                
+                <!-- Files Tab -->
+                <div id="filesTab" class="tab-content active">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">١. تحديد ملف PDF</h2>
+                        <div class="premium-feature">
+                            <input type="file" id="pdfFile" accept=".pdf" class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                            <i class="fas fa-lock premium-lock"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">٢. تحديد ملف الأختام</h2>
+                        <div class="premium-feature">
+                            <input type="file" id="stampsFile" accept=".txt" class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                            <i class="fas fa-lock premium-lock"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">٣. تصدير/استيراد المشروع</h2>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <button id="exportProjectBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed premium-feature">
+                                <i class="fas fa-file-export ml-1"></i> تصدير
+                                <i class="fas fa-lock premium-lock"></i>
+                            </button>
+                            <button id="importProjectBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed premium-feature">
+                                <i class="fas fa-file-import ml-1"></i> استيراد
+                                <i class="fas fa-lock premium-lock"></i>
+                            </button>
+                        </div>
+                        <input type="file" id="projectFile" accept=".json" class="hidden">
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-right">التنقل</h2>
+                        <div class="flex justify-between">
+                            <button id="nextPage" class="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                التالي
+                            </button>
+                            <span id="pageInfo" class="self-center">صفحة ٠ من ٠</span>
+                            <button id="prevPage" class="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                السابق
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fields Tab -->
+                <div id="fieldsTab" class="tab-content">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">حقول الإجابة</h2>
+                        <div class="mb-4">
+                            <div class="flex justify-between mb-2">
+                                <span id="fieldCount" class="badge badge-primary">0 حقل</span>
+                                <button id="clearFieldsBtn" class="text-sm text-red-500 hover:text-red-700 premium-feature">
+                                    <i class="fas fa-trash ml-1"></i> مسح الكل
+                                    <i class="fas fa-lock premium-lock"></i>
+                                </button>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                انقر على زر "إضافة حقل" لإضافة حقل جديد في وسط المستند. استخدم أيقونة التحرير لضبط الموقع والحجم.
+                            </p>
+                        </div>
+                        
+                        <button id="addFieldBtn" class="w-full bg-primary hover:bg-primary/80 text-white font-bold py-2 px-4 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed premium-feature">
+                            <i class="fas fa-plus-square ml-1"></i> إضافة حقل في الوسط
+                            <i class="fas fa-lock premium-lock"></i>
+                        </button>
+                        
+                        <div class="rounded-lg bg-gray-200 dark:bg-gray-700 p-2 mb-4 max-h-48 overflow-y-auto">
+                            <ul id="fieldsList" class="text-right">
+                                <li class="text-center text-gray-500 dark:text-gray-400 py-2">
+                                    لا توجد حقول محددة
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h3 class="font-semibold mb-2">إعدادات الحقل الافتراضي</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="premium-feature">
+                                    <label for="defaultFieldWidth" class="block text-sm mb-1">العرض (بكسل):</label>
+                                    <input type="number" id="defaultFieldWidth" value="150" min="20" max="500" 
+                                        class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                                    <i class="fas fa-lock premium-lock"></i>
+                                </div>
+                                <div class="premium-feature">
+                                    <label for="defaultFieldHeight" class="block text-sm mb-1">الارتفاع (بكسل):</label>
+                                    <input type="number" id="defaultFieldHeight" value="40" min="20" max="500" 
+                                        class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                                    <i class="fas fa-lock premium-lock"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button id="reorderFieldsBtn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg mb-3 disabled:opacity-50 disabled:cursor-not-allowed premium-feature">
+                            <i class="fas fa-sort ml-1"></i> إعادة ترتيب الحقول
+                            <i class="fas fa-lock premium-lock"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stamps Tab -->
+                <div id="stampsTab" class="tab-content">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">٣. التحكم بالأختام</h2>
+                        <button id="startStampingBtn" class="w-full bg-primary hover:bg-primary/80 text-white font-bold py-2 px-4 rounded-lg mb-3 disabled:opacity-50 disabled:cursor-not-allowed premium-feature">
+                            بدء الختم
+                            <i class="fas fa-lock premium-lock"></i>
+                        </button>
+                        <button id="placeNextStampBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mb-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-forward ml-1"></i> وضع الختم التالي
+                        </button>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <button id="undoBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-undo ml-1"></i> تراجع
+                            </button>
+                            <button id="redoBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-redo ml-1"></i> إعادة
+                            </button>
+                        </div>
+                        <button id="saveStampedPdfBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mb-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                            حفظ ملف PDF المختوم
+                        </button>
+                        <button id="resetBtn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            إعادة تعيين
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">الختم الحالي</h2>
+                        <div id="currentStamp" class="p-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg min-h-10 break-words text-right">
+                            لم يتم تحميل أختام
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 flex items-center">
+                        <input type="checkbox" id="autoFitText" class="ml-2" checked>
+                        <label for="autoFitText">ضبط تلقائي للنص في الحقل</label>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div id="settingsTab" class="tab-content">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold mb-2 text-right">إعدادات الختم</h2>
+                        <div class="mb-2">
+                            <label for="stampColor" class="block mb-1 text-right">اللون:</label>
+                            <input type="color" id="stampColor" value="#FF0000" class="w-full h-10 p-1 rounded-lg">
+                        </div>
+                        <div class="mb-2">
+                            <label for="stampSize" class="block mb-1 text-right">الحجم:</label>
+                            <input type="range" id="stampSize" min="10" max="50" value="20" class="w-full">
+                            <div class="flex justify-between text-xs">
+                                <span>كبير</span>
+                                <span>صغير</span>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="stampFont" class="block mb-1 text-right">الخط:</label>
+                            <select id="stampFont" class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                                <option value="">جاري تحميل الخطوط...</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label for="stampInitialWidth" class="block mb-1 text-right">العرض الافتراضي (بكسل):</label>
+                            <input type="number" id="stampInitialWidth" value="150" min="20" max="500" class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                        </div>
+                        <div class="mb-2">
+                            <label for="stampInitialHeight" class="block mb-1 text-right">الارتفاع الافتراضي (بكسل):</label>
+                            <input type="number" id="stampInitialHeight" value="40" min="20" max="500" class="w-full text-base p-2 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-700">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="app-content">
+                <div class="pdf-container">
+                    <div id="pdfContainer" class="relative bg-white mx-auto shadow-lg">
+                        <canvas id="pdfCanvas" dir="ltr"></canvas>
+                        <div id="stampOverlay" class="absolute inset-0"></div>
+                        <div id="fieldOverlay" class="absolute inset-0"></div>
+                        <div id="selectionOverlay" class="selection-overlay hidden"></div>
+                    </div>
+                    <div id="loadingMessage" class="hidden absolute inset-0 flex items-center justify-center bg-gray-100/80 dark:bg-gray-800/80">
+                        <div class="text-lg"><div class="loading-spinner"></div> جاري تحميل PDF...</div>
+                    </div>
+                    <div id="noFileMessage" class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-lg text-gray-500 dark:text-gray-400">الرجاء تحديد ملف PDF للعرض</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for field reordering -->
+    <div id="reorderModal" class="app-modal hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">إعادة ترتيب الحقول</h3>
+                <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت لإعادة ترتيب الحقول:</p>
+            <ul id="sortableFieldsList" class="mb-4 space-y-2">
+                <!-- Fields will be populated here -->
+            </ul>
+            <div class="flex justify-end">
+                <button id="saveReorderBtn" class="bg-primary hover:bg-primary/80 text-white font-bold py-2 px-4 rounded-lg">
+                    حفظ الترتيب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Dialog -->
+    <div id="premiumDialog" class="app-modal hidden" style="position: absolute; right:-200px,">
+        <div class="premium-dialog">
+            <div class="premium-shine"></div>
+            <div class="premium-dialog-header">
+                <h2 class="text-center">ترقية إلى النسخة المميزة</h2>
+            </div>
+            <div class="premium-dialog-body">
+                <div class="text-center mb-6">
+                    <div class="premium-badge-large">
+                        <i class="fas fa-crown premium-badge-icon"></i>
+                        النسخة المميزة
+                    </div>
+                    <p>احصل على جميع الميزات المتقدمة وتمتع بتجربة ختم المستندات بدون أي قيود!</p>
+                </div>
+                
+                <h3 class="text-lg font-bold mb-3">ميزات النسخة المميزة:</h3>
+                
+                <div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div>
+                        <strong>استيراد ملفات PDF</strong>
+                        <p class="text-sm opacity-80">قم باستيراد ملفات PDF الخاصة بك واستخدامها بدلاً من الملف الافتراضي</p>
+                    </div>
+                </div>
+                
+                <div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-file-import"></i>
+                    </div>
+                    <div>
+                        <strong>استيراد وتصدير المشاريع</strong>
+                        <p class="text-sm opacity-80">حفظ مشاريعك واستيرادها لاحقاً للاستمرار في العمل</p>
+                    </div>
+                </div>
+                
+                <div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-vector-square"></i>
+                    </div>
+                    <div>
+                        <strong>إنشاء وتحرير الحقول</strong>
+                        <p class="text-sm opacity-80">إنشاء حقول مخصصة وتعديلها حسب احتياجاتك</p>
+                    </div>
+                </div>
+                
+                <div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-stamp"></i>
+                    </div>
+                    <div>
+                        <strong>وضع الأختام يدوياً</strong>
+                        <p class="text-sm opacity-80">اختر مكان وضع الأختام بنفسك بدلاً من الوضع التلقائي</p>
+                    </div>
+                </div>
+                
+                <div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div>
+                        <strong>استيراد ملفات الأختام</strong>
+                        <p class="text-sm opacity-80">استيراد ملفات أختام متعددة بدلاً من الاعتماد على الملف الافتراضي</p>
+                    </div>
+                </div>
+<div class="premium-feature-item">
+                    <div class="premium-feature-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <strong>وغيرها الكثير..</strong>
+                        <p class="text-sm opacity-80">هيا احصل عليها الآن!</p>
+                    </div>
+                </div>
+</div>
+            <div class="premium-dialog-footer">
+                <button id="premiumCloseBtn" class="premium-close-button">
+                    إغلاق
+                </button>
+                <button id="getPremiumBtn" class="premium-cta-button">
+                    <i class="fas fa-crown ml-1"></i>
+                    احصل على النسخة المميزة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // Premium user management
+        let isPremiumUser = false;
+        let userName = "";
+        let userClass = "";
+        
+        // URLs for resources (replace with your actual URLs)
+        const pdfUrl = "https://good-web-dev.github.io/test/أوراق عمل الدراسات الأدبية.pdf";
+        const stampsUrl = "https://good-web-dev.github.io/test/الأجوبة.txt";
+        const projectJsonUrl = "https://good-web-dev.github.io/test/الحقول.json";
+        
+        // Default stamps.txt content as a fallback
+        const defaultStampsText = "[اسم الطالب]\n[رقم الشعبة]\nالتوقيع هنا\nصح\nخطأ\nتم التصحيح\nممتاز\nجيد جداً\nجيد\nمقبول\nراسب\nتحتاج لمراجعة\nمراجع";
+        
+        // Default project JSON as a fallback
+        const defaultProjectJson = {
+            "version": "1.0",
+            "fields": [
+                {
+                    "id": "field_default_1",
+                    "x": 100,
+                    "y": 200,
+                    "width": 150,
+                    "height": 40,
+                    "page": 1
+                },
+                {
+                    "id": "field_default_2",
+                    "x": 300,
+                    "y": 200,
+                    "width": 150,
+                    "height": 40,
+                    "page": 1
+                },
+                {
+                    "id": "field_default_3",
+                    "x": 100,
+                    "y": 300,
+                    "width": 150,
+                    "height": 40,
+                    "page": 1
+                },
+                {
+                    "id": "field_default_4",
+                    "x": 300,
+                    "y": 300,
+                    "width": 150,
+                    "height": 40,
+                    "page": 1
+                }
+            ],
+            "stamps": [],
+            "config": {
+                "color": "#FF0000",
+                "size": "20",
+                "font": "Cairo",
+                "initialWidth": "150",
+                "initialHeight": "40",
+                "autoFit": true,
+                "defaultFieldWidth": "150",
+                "defaultFieldHeight": "40"
+            }
+        };
+        
+        // Variables for PDF handling
+        let pdfDoc = null;
+        let currentPage = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let canvas = document.getElementById('pdfCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        // Variables for stamping
+        let stamps = [];
+        let currentStampIndex = 0;
+        let isStampingActive = false;
+        let stampedPositions = [];
+        let resizeActive = false;
+        let activeResizeStamp = null;
+        let activeResizeType = null; // 'width', 'height', or 'both'
+        let dragActive = false;
+        let activeDragStamp = null;
+        let activeStampId = null; // Currently active/editing stamp ID
+        let dragOffset = { x: 0, y: 0 };
+        
+        // Variables for field selection
+        let selectedAnswerFields = [];
+        let isSelectionActive = false;
+        let currentFieldId = 1;
+        let isFieldDragActive = false;
+        let activeFieldElem = null;
+        let fieldDragOffset = { x: 0, y: 0 };
+        let activeFieldEditId = null; // Track which field is currently being edited
+        
+        // Application mode
+        const APP_MODES = {
+            VIEW: 'view',
+            FIELD: 'field',
+            STAMP: 'stamp'
+        };
+        let currentMode = APP_MODES.VIEW;
+        
+        // History stacks for undo/redo functionality
+        let undoStack = [];
+        let redoStack = [];
+        
+        // Stamp action types
+        const ACTION_TYPES = {
+            ADD: 'add',
+            MOVE: 'move',
+            RESIZE: 'resize',
+            DELETE: 'delete',
+            ADD_FIELD: 'add_field',
+            MOVE_FIELD: 'move_field',
+            RESIZE_FIELD: 'resize_field',
+            DELETE_FIELD: 'delete_field',
+            REORDER_FIELDS: 'reorder_fields'
+        };
+        
+        // UI Elements - PDF Viewer
+        const pdfContainer = document.getElementById('pdfContainer');
+        const stampOverlay = document.getElementById('stampOverlay');
+        const fieldOverlay = document.getElementById('fieldOverlay');
+        const selectionOverlay = document.getElementById('selectionOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const noFileMessage = document.getElementById('noFileMessage');
+        
+        // UI Elements - Controls
+        const pdfFileInput = document.getElementById('pdfFile');
+        const stampsFileInput = document.getElementById('stampsFile');
+        const projectFileInput = document.getElementById('projectFile');
+        const importProjectBtn = document.getElementById('importProjectBtn');
+        const exportProjectBtn = document.getElementById('exportProjectBtn');
+        const startStampingBtn = document.getElementById('startStampingBtn');
+        const placeNextStampBtn = document.getElementById('placeNextStampBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const saveStampedPdfBtn = document.getElementById('saveStampedPdfBtn');
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const autoFitCheckbox = document.getElementById('autoFitText');
+        
+        // UI Elements - Mode Buttons
+        const viewModeBtn = document.getElementById('viewModeBtn');
+        const fieldModeBtn = document.getElementById('fieldModeBtn');
+        const stampModeBtn = document.getElementById('stampModeBtn');
+        
+        // UI Elements - Field Management
+        const fieldCountEl = document.getElementById('fieldCount');
+        const fieldsListEl = document.getElementById('fieldsList');
+        const addFieldBtn = document.getElementById('addFieldBtn');
+        const clearFieldsBtn = document.getElementById('clearFieldsBtn');
+        const reorderFieldsBtn = document.getElementById('reorderFieldsBtn');
+        const defaultFieldWidthInput = document.getElementById('defaultFieldWidth');
+        const defaultFieldHeightInput = document.getElementById('defaultFieldHeight');
+        
+        // UI Elements - Reorder Modal
+        const reorderModal = document.getElementById('reorderModal');
+        const sortableFieldsList = document.getElementById('sortableFieldsList');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const saveReorderBtn = document.getElementById('saveReorderBtn');
+        
+        // UI Elements - Stamp Configuration
+        const pageInfo = document.getElementById('pageInfo');
+        const currentStampElement = document.getElementById('currentStamp');
+        const stampColorInput = document.getElementById('stampColor');
+        const stampSizeInput = document.getElementById('stampSize');
+        const stampFontInput = document.getElementById('stampFont');
+        const stampInitialWidthInput = document.getElementById('stampInitialWidth');
+        const stampInitialHeightInput = document.getElementById('stampInitialHeight');
+        
+        // UI Elements - Premium Dialog
+        const premiumDialog = document.getElementById('premiumDialog');
+        const premiumCloseBtn = document.getElementById('premiumCloseBtn');
+        const getPremiumBtn = document.getElementById('getPremiumBtn');
+        const userInfoDisplay = document.getElementById('userInfoDisplay');
+        const userNameElement = document.getElementById('userName');
+        const userInitialElement = document.getElementById('userInitial');
+        const userClassElement = document.getElementById('userClass');
+        const premiumBadge = document.getElementById('premiumBadge');
+        
+        // Tab Navigation
+        const tabItems = document.querySelectorAll('.tab-item');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Function to fetch PDF from URL
+        async function fetchPdfFromUrl(url) {
+            try {
+                loadingMessage.classList.remove('hidden');
+                noFileMessage.classList.add('hidden');
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                return new Uint8Array(arrayBuffer);
+            } catch (error) {
+                console.error('Error fetching PDF:', error);
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'خطأ في تحميل ملف PDF: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'حسناً',
+                });
+                loadingMessage.classList.add('hidden');
+                noFileMessage.classList.remove('hidden');
+                return null;
+            }
+        }
+        
+        // Function to fetch stamps text from URL
+        async function fetchStampsFromUrl(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch stamps: ${response.status} ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                return text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0);
+            } catch (error) {
+                console.error('Error fetching stamps:', error);
+                // Return default stamps as fallback
+                return defaultStampsText.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0);
+            }
+        }
+        
+        // Function to fetch project JSON from URL
+        async function fetchProjectFromUrl(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch project: ${response.status} ${response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching project:', error);
+                // Return default project as fallback
+                return defaultProjectJson;
+            }
+        }
+        
+        // Function to show premium dialog
+function showPremiumDialog() {
+    Swal.fire({
+        title: 'ترقية إلى النسخة المميزة',
+        html: `
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-bold py-1 px-3 rounded-full mb-4">
+                    <i class="fas fa-crown mr-2"></i> &nbsp;
+                    النسخة المميزة
+                </div>
+                <p>احصل على جميع الميزات المتقدمة وتمتع بتجربة ختم المستندات بدون أي قيود!</p>
+            </div>
+            
+            <h3 class="text-lg font-bold mb-3 text-right">ميزات النسخة المميزة:</h3>
+            
+            <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <div>
+                    <strong>استيراد ملفات PDF</strong>
+                    <p class="text-sm opacity-80">قم باستيراد ملفات PDF الخاصة بك واستخدامها بدلاً من الملف الافتراضي</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-file-import"></i>
+                </div>
+                <div>
+                    <strong>استيراد وتصدير المشاريع</strong>
+                    <p class="text-sm opacity-80">حفظ مشاريعك واستيرادها لاحقاً للاستمرار في العمل</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-vector-square"></i>
+                </div>
+                <div>
+                    <strong>إنشاء وتحرير الحقول</strong>
+                    <p class="text-sm opacity-80">إنشاء حقول مخصصة وتعديلها حسب احتياجاتك</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-stamp"></i>
+                </div>
+                <div>
+                    <strong>وضع الأختام يدوياً</strong>
+                    <p class="text-sm opacity-80">اختر مكان وضع الأختام بنفسك بدلاً من الوضع التلقائي</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div>
+                    <strong>استيراد ملفات الأختام</strong>
+                    <p class="text-sm opacity-80">استيراد ملفات أختام متعددة بدلاً من الاعتماد على الملف الافتراضي</p>
+                </div>
+            </div>
+
+             <div class="flex items-center mb-3 text-right">
+                <div class="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center ml-3">
+                    <i class="fas fa-star"></i>
+                    </div>
+                    <div>
+                        <strong>وغيرها الكثير..</strong>
+                        <p class="text-sm opacity-80">هيا احصل عليها الآن!</p>
+                    </div>
+                </div>
+        `,
+        showCloseButton: false,
+        showCancelButton: true,
+        focusConfirm: false,
+        customClass: {
+            popup: 'premium-swal-popup',
+            title: 'premium-swal-title',
+            htmlContainer: 'premium-swal-content',
+            confirmButton: 'premium-swal-confirm-button',
+            cancelButton: 'premium-swal-cancel-button'
+        },
+        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+        color: '#ffffff',
+        confirmButtonText: '<i class="fas fa-crown mr-2"></i> &nbsp; احصل على النسخة المميزة',
+        cancelButtonText: 'إغلاق',
+        cancelButtonColor: 'rgba(255,255,255,0.2)',
+        confirmButtonColor: '#FFD700',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                    title: 'ادفع لي فلوس!',
+                    text: 'وش تفكر الشغلة مجانًا هاه؟! ترا حنا نتعب ترا!',
+                    icon: 'info',
+                    confirmButtonText: 'خلاص بأدفع بعدين!'
+                });
+        }
+    });
+}
+        
+        // Function to check if premium feature is allowed
+        function checkPremiumAccess(feature) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return false;
+            }
+            return true;
+        }
+        
+        // Function to update premium UI elements
+        function updatePremiumUI() {
+            if (isPremiumUser) {
+                // Show premium badge
+                premiumBadge.classList.remove('hidden');
+                
+                // Hide all premium locks
+                document.querySelectorAll('.premium-lock').forEach(lock => {
+                    lock.style.display = 'none';
+                });
+                
+                // Enable premium features
+                document.querySelectorAll('.premium-feature').forEach(feature => {
+                    // Remove premium-feature class to disable the premium check
+                    feature.classList.remove('premium-feature');
+                });
+            }
+        }
+        
+        // Request user information
+        async function promptForUserInfo() {
+            const { value: userNameInput } = await Swal.fire({
+                title: 'مرحباً بك!',
+                text: 'الرجاء إدخال اسمك الكامل:',
+                input: 'text',
+                inputPlaceholder: 'اسمك الكامل',
+                allowOutsideClick: false,
+confirmButtonText: 'حسنًا',
+                allowEscapeKey: false,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'الرجاء إدخال اسمك!';
+                    }
+                }
+            });
+            
+            userName = userNameInput;
+            
+            // Check for premium names
+            if (userName === "ضيف الله العدواني" || userName === "ضيف الله عيضة العدواني" || userName === "ضيف الله عيضه العدواني" || userName === "ضيف الله بن عيضة العدواني" || userName === "ضيف الله بن عيضه العدواني" || userName === "ضيف الله عيضة أحمد العدواني" || userName === "ضيف الله عيضه أحمد العدواني" || userName === "ضيف الله بن عيضة بن أحمد العدواني" || userName === "ضيف الله بن عيضه بن أحمد العدواني" || userName === "عبدالله الشهري" || userName === "عبدالله فائز الشهري") {
+                isPremiumUser = true;
+            }
+            
+            const { value: userClassInput } = await Swal.fire({
+                title: 'أهلاً يا ' + userName,
+                text: 'الرجاء إدخال رقم الشعبة الخاص بك:',
+                input: 'text',
+confirmButtonText: 'حسنًا',
+                inputPlaceholder: 'رقم الشعبة',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'الرجاء إدخال رقم الشعبة!';
+                    }
+                }
+            });
+            
+            userClass = userClassInput;
+            
+            // Update UI to show user info
+            updateUserInfoDisplay();
+            
+            // Update premium UI elements if needed
+            if (isPremiumUser) {
+                updatePremiumUI();
+                
+                // Welcome premium user
+                Swal.fire({
+                    title: 'مرحباً بك في النسخة المميزة!',
+                    text: 'تم تفعيل جميع الميزات المتقدمة لحسابك.',
+                    icon: 'success',
+                    confirmButtonText: 'رائع!'
+                });
+            } else {
+                Swal.fire({
+                    title: 'بدأ الاستخدام!',
+                    html: 'اضغط على زر "وضع الختم التالي" للبدء في عملية الختم.',
+                    icon: 'info',
+                    confirmButtonText: 'فهمت'
+                });
+            }
+            
+            // Start loading resources
+            initializeResources();
+        }
+        
+        // Initialize resources from URLs
+        async function initializeResources() {
+            try {
+                // 1. Load the stamps first
+                let stampsData;
+                try {
+                    stampsData = await fetchStampsFromUrl(stampsUrl);
+                } catch (error) {
+                    console.warn('Using default stamps due to error:', error);
+                    stampsData = defaultStampsText.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                }
+                
+                // Replace the first two lines with user info
+                if (stampsData.length >= 2) {
+                    stampsData[0] = userName;
+                    stampsData[1] = userClass;
+                }
+                stamps = stampsData;
+                
+                // Update current stamp display
+                currentStampIndex = 0;
+                updateCurrentStampDisplay();
+                
+                // 2. Load the PDF
+                loadDefaultPDF();
+                
+                // 3. Load the project configuration
+                loadDefaultProject();
+                
+            } catch (error) {
+                console.error('Error initializing resources:', error);
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'حدث خطأ أثناء تحميل الموارد: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        }
+        
+        // Update user info display
+        function updateUserInfoDisplay() {
+            userInfoDisplay.classList.remove('hidden');
+            userNameElement.textContent = userName;
+            userInitialElement.textContent = userName.charAt(0);
+            userClassElement.textContent = `الشعبة: ${userClass}`;
+            
+            if (isPremiumUser) {
+                premiumBadge.classList.remove('hidden');
+            }
+        }
+        
+        // Load default PDF
+        async function loadDefaultPDF() {
+            loadingMessage.classList.remove('hidden');
+            noFileMessage.classList.add('hidden');
+            
+            try {
+                let pdfBuffer;
+                
+                try {
+                    // Try to fetch from URL
+                    pdfBuffer = await fetchPdfFromUrl(pdfUrl);
+                } catch (error) {
+                    console.warn('Failed to load PDF from URL:', error);
+                    // If URL loading fails, show error
+                    Swal.fire({
+                        title: 'خطأ',
+                        text: 'خطأ في تحميل ملف PDF الافتراضي. يرجى المحاولة مرة أخرى لاحقاً.',
+                        icon: 'error',
+                        confirmButtonText: 'حسناً',
+                    });
+                    loadingMessage.classList.add('hidden');
+                    noFileMessage.classList.remove('hidden');
+                    return;
+                }
+                
+                // Load the PDF
+                const pdf = await pdfjsLib.getDocument(pdfBuffer).promise;
+                pdfDoc = pdf;
+                currentPage = 1;
+                
+                // Enable navigation buttons if needed
+                if (pdf.numPages > 1) {
+                    nextPageBtn.disabled = false;
+                }
+                
+                // Render the first page
+                renderPage(currentPage);
+                
+                // Check if stamps are loaded to enable stamping
+                checkStartStampingEnabled();
+                
+                // Update other UI elements
+                updateButtonStates();
+                
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'خطأ في تحميل ملف PDF: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'حسناً',
+                });
+                loadingMessage.classList.add('hidden');
+                noFileMessage.classList.remove('hidden');
+            }
+        }
+        
+        // Load default project
+        async function loadDefaultProject() {
+            try {
+                let projectData;
+                
+                try {
+                    // Try to fetch from URL
+                    projectData = await fetchProjectFromUrl(projectJsonUrl);
+                } catch (error) {
+                    console.warn('Failed to load project from URL:', error);
+                    // If URL loading fails, use default
+                    projectData = defaultProjectJson;
+                }
+                
+                // Import fields
+                selectedAnswerFields = projectData.fields;
+                
+                // Import stamps if available
+                if (projectData.stamps && Array.isArray(projectData.stamps)) {
+                    stampedPositions = projectData.stamps;
+                    
+                    // Ensure all stamps have the originalSize property
+                    stampedPositions.forEach(stamp => {
+                        if (!stamp.hasOwnProperty('originalSize')) {
+                            stamp.originalSize = parseInt(stamp.size, 10);
+                        }
+                    });
+                    
+                    saveStampedPdfBtn.disabled = stampedPositions.length === 0;
+                }
+                
+                // Import configuration
+                if (projectData.config) {
+                    if (projectData.config.color) stampColorInput.value = projectData.config.color;
+                    if (projectData.config.size) stampSizeInput.value = projectData.config.size;
+                    if (projectData.config.font) stampFontInput.value = projectData.config.font;
+                    if (projectData.config.initialWidth) stampInitialWidthInput.value = projectData.config.initialWidth;
+                    if (projectData.config.initialHeight) stampInitialHeightInput.value = projectData.config.initialHeight;
+                    if (typeof projectData.config.autoFit === 'boolean') autoFitCheckbox.checked = projectData.config.autoFit;
+                    if (projectData.config.defaultFieldWidth) defaultFieldWidthInput.value = projectData.config.defaultFieldWidth;
+                    if (projectData.config.defaultFieldHeight) defaultFieldHeightInput.value = projectData.config.defaultFieldHeight;
+                }
+                
+                // Update UI
+                updateFieldsUI();
+                
+            } catch (error) {
+                console.error('Error loading default project:', error);
+            }
+        }
+        
+        // Initialize UI state
+        function initializeUI() {
+            // Disable buttons initially
+            startStampingBtn.disabled = true;
+            placeNextStampBtn.disabled = true;
+            resetBtn.disabled = true;
+            saveStampedPdfBtn.disabled = true;
+            prevPageBtn.disabled = true;
+            nextPageBtn.disabled = true;
+            undoBtn.disabled = true;
+            redoBtn.disabled = true;
+            reorderFieldsBtn.disabled = true;
+            exportProjectBtn.disabled = true;
+            addFieldBtn.disabled = true;
+            
+            // Add premium feature event listeners
+            document.querySelectorAll('.premium-feature').forEach(feature => {
+                if (feature.tagName === 'BUTTON') {
+                    // Store the original click handler if it exists
+                    const originalClick = feature.onclick;
+                    
+                    // Replace click handler
+                    feature.onclick = function(e) {
+                        if (checkPremiumAccess()) {
+                            // If premium access granted and there was an original handler, call it
+                            if (originalClick) originalClick.call(this, e);
+                        }
+                    };
+                } else if (feature.querySelector('input')) {
+                    const input = feature.querySelector('input');
+                    
+                    // Add click handler to the containing div
+                    feature.addEventListener('click', function(e) {
+                        if (!isPremiumUser) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            showPremiumDialog();
+                        }
+                    });
+                    
+                    // Add focus handler to the input
+                    input.addEventListener('focus', function(e) {
+                        if (!isPremiumUser) {
+                            e.preventDefault();
+                            this.blur();
+                            showPremiumDialog();
+                        }
+                    });
+                }
+            });
+            
+            // Set up tab navigation
+            tabItems.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    const tabId = tab.dataset.tab;
+                    document.getElementById(`${tabId}Tab`).classList.add('active');
+                });
+            });
+            
+            // Set up mode buttons
+            viewModeBtn.addEventListener('click', () => setAppMode(APP_MODES.VIEW));
+            fieldModeBtn.addEventListener('click', () => {
+                if (checkPremiumAccess()) {
+                    setAppMode(APP_MODES.FIELD);
+                }
+            });
+            stampModeBtn.addEventListener('click', () => {
+                if (checkPremiumAccess()) {
+                    setAppMode(APP_MODES.STAMP);
+                }
+            });
+            
+            // Set up reorder modal
+            closeModalBtn.addEventListener('click', hideReorderModal);
+            reorderFieldsBtn.addEventListener('click', () => {
+                if (checkPremiumAccess()) {
+                    showReorderModal();
+                }
+            });
+            saveReorderBtn.addEventListener('click', saveFieldOrder);
+            
+            // Set up field actions
+            clearFieldsBtn.addEventListener('click', () => {
+                if (checkPremiumAccess()) {
+                    clearAllFields();
+                }
+            });
+            addFieldBtn.addEventListener('click', () => {
+                if (checkPremiumAccess()) {
+                    addCenteredField();
+                }
+            });
+            
+            // Set up stamp events
+            stampOverlay.addEventListener('click', handleStampOverlayClick);
+            
+            // Set up premium features for each PDF file input
+            pdfFileInput.addEventListener('click', function(e) {
+                if (!isPremiumUser) {
+                    e.preventDefault();
+                    showPremiumDialog();
+                }
+            });
+            
+            // Set up premium features for stamps file input
+            stampsFileInput.addEventListener('click', function(e) {
+                if (!isPremiumUser) {
+                    e.preventDefault();
+                    showPremiumDialog();
+                }
+            });
+            
+            // Prompt for user info on load
+            setTimeout(promptForUserInfo, 500);
+        }
+        
+        // Function to handle clicks on the stamp overlay
+        function handleStampOverlayClick(e) {
+            if (!isStampingActive || currentStampIndex >= stamps.length) return;
+            if (resizeActive || dragActive) return; // Don't add new stamps during resize/drag
+            if (currentMode !== APP_MODES.STAMP) return;
+            
+            // Only respond to direct click on the overlay, not on stamps
+            if (e.target !== stampOverlay) return;
+            
+            // Premium check for manual stamp placement
+            if (!checkPremiumAccess()) return;
+            
+            const rect = stampOverlay.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Add stamp to the current position (regardless of whether fields exist)
+            const stampText = stamps[currentStampIndex];
+            const newStampId = addStamp(stampText, x, y, currentPage);
+            
+            // Enter edit mode for the new stamp
+            if (newStampId) {
+                // Reset any previous editing
+                exitStampEditMode();
+                enterStampEditMode(newStampId);
+            }
+            
+            // Move to next stamp
+            currentStampIndex++;
+            updateCurrentStampDisplay();
+            
+            // Check if we've used all stamps
+            if (currentStampIndex >= stamps.length) {
+                isStampingActive = false;
+                stampOverlay.style.cursor = 'default';
+            }
+            
+            checkStartStampingEnabled();
+        }
+        
+        // Function to add a field in the center of the PDF viewer
+        function addCenteredField() {
+            if (!pdfDoc || !checkPremiumAccess()) return;
+            
+            // Get the canvas dimensions
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+            
+            // Get field dimensions
+            const fieldWidth = parseInt(defaultFieldWidthInput.value, 10);
+            const fieldHeight = parseInt(defaultFieldHeightInput.value, 10);
+            
+            // Calculate center position
+            const centerX = (canvasWidth - fieldWidth) / 2;
+            const centerY = (canvasHeight - fieldHeight) / 2;
+            
+            // Add the field
+            addField(centerX, centerY, fieldWidth, fieldHeight, currentPage);
+        }
+        
+        // Set application mode (View, Field Selection, or Stamping)
+        function setAppMode(mode) {
+            // Premium check for field and stamp modes
+            if ((mode === APP_MODES.FIELD || mode === APP_MODES.STAMP) && !isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            // If switching away from field edit mode, exit any active editing
+            if (currentMode === APP_MODES.FIELD && activeFieldEditId && mode !== APP_MODES.FIELD) {
+                exitFieldEditMode();
+            }
+            
+            // If switching away from stamp edit mode, exit any active editing
+            if (currentMode === APP_MODES.STAMP && activeStampId && mode !== APP_MODES.STAMP) {
+                exitStampEditMode();
+            }
+            
+            currentMode = mode;
+            
+            // Reset UI for all modes
+            viewModeBtn.classList.remove('active');
+            fieldModeBtn.classList.remove('active');
+            stampModeBtn.classList.remove('active');
+            
+            selectionOverlay.classList.add('hidden');
+            isSelectionActive = false;
+            isStampingActive = false;
+            stampOverlay.style.cursor = 'default';
+            
+            // Update UI based on selected mode
+            switch(mode) {
+                case APP_MODES.VIEW:
+                    viewModeBtn.classList.add('active');
+                    break;
+                    
+                case APP_MODES.FIELD:
+                    fieldModeBtn.classList.add('active');
+                    selectionOverlay.classList.remove('hidden');
+                    isSelectionActive = true;
+                    // Switch to fields tab
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    document.querySelector('.tab-item[data-tab="fields"]').classList.add('active');
+                    document.getElementById('fieldsTab').classList.add('active');
+                    break;
+                    
+                case APP_MODES.STAMP:
+                    stampModeBtn.classList.add('active');
+                    // Switch to stamps tab
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    document.querySelector('.tab-item[data-tab="stamps"]').classList.add('active');
+                    document.getElementById('stampsTab').classList.add('active');
+                    break;
+            }
+            
+            // Update button states
+            updateButtonStates();
+        }
+        
+        // Update button states based on the current mode and state
+        function updateButtonStates() {
+            addFieldBtn.disabled = !(pdfDoc && currentMode === APP_MODES.FIELD);
+        }
+        
+        // Function to extract font names from CSS file
+        async function getFontNamesFromCSS(cssUrl) {
+            try {
+                // Fetch the CSS file
+                const response = await fetch(cssUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch CSS file: ${response.status} ${response.statusText}`);
+                }
+                
+                const cssText = await response.text();
+                
+                // Regular expression to find font-family declarations
+                const fontFamilyRegex = /@font-face\s*{\s*font-family:\s*['"]([^'"]+)['"]/g;
+                
+                // Find all matches
+                const fontNames = new Set();
+                let match;
+                while ((match = fontFamilyRegex.exec(cssText)) !== null) {
+                    fontNames.add(match[1]);
+                }
+                
+                // Convert Set to array and sort alphabetically
+                return Array.from(fontNames).sort();
+            } catch (error) {
+                console.error('Error loading font names:', error);
+                return ['Cairo', 'Arial']; // Default fallback fonts if loading fails
+            }
+        }
+        
+        // Function to populate font select dropdown
+        async function populateFontSelect() {
+            const fontSelect = document.getElementById('stampFont');
+            
+            try {
+                // Show loading state
+                fontSelect.innerHTML = '<option value="">جاري تحميل الخطوط...</option>';
+                
+                // Get font names
+                const fontNames = await getFontNamesFromCSS('https://good-web-dev.github.io/WebFonts-v2/fonts.css');
+                
+                // Clear the select
+                fontSelect.innerHTML = '';
+                
+                // Add each font as an option
+                fontNames.forEach(fontName => {
+                    const option = document.createElement('option');
+                    option.value = fontName;
+                    option.textContent = fontName;
+                    option.style.fontFamily = fontName;
+                    fontSelect.appendChild(option);
+                });
+                
+                // Set default font to Cairo if available, otherwise first font
+                const defaultFont = fontNames.includes('Cairo') ? 'Cairo' : fontNames[0];
+                fontSelect.value = defaultFont;
+            } catch (error) {
+                console.error('Failed to populate font select:', error);
+                fontSelect.innerHTML = '<option value="Cairo">Cairo</option>';
+            }
+        }
+        
+        // Call the function to populate font select
+        populateFontSelect();
+        
+        // Function to record action for undo/redo
+        function recordAction(type, data) {
+            // Save action to undo stack
+            undoStack.push({
+                type,
+                data: JSON.parse(JSON.stringify(data))  // Deep copy
+            });
+            
+            // Clear redo stack after new action
+            redoStack = [];
+            
+            // Update UI buttons
+            updateUndoRedoButtons();
+        }
+        
+        // Function to update undo/redo button states
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = undoStack.length === 0;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+        
+        // Text wrapping function to break text into lines that fit within width
+        function wrapText(ctx, text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+            
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            
+            // Push the last line
+            lines.push(currentLine);
+            
+            // If the text has no spaces or is one long word
+            if (lines.length === 1 && ctx.measureText(lines[0]).width > maxWidth) {
+                // Break the text into characters
+                const singleLine = lines[0];
+                lines.length = 0;
+                let currentChar = singleLine[0];
+                
+                for (let i = 1; i < singleLine.length; i++) {
+                    const testChar = currentChar + singleLine[i];
+                    const testWidth = ctx.measureText(testChar).width;
+                    
+                    if (testWidth > maxWidth) {
+                        lines.push(currentChar);
+                        currentChar = singleLine[i];
+                    } else {
+                        currentChar = testChar;
+                    }
+                }
+                
+                // Push the last characters
+                if (currentChar) {
+                    lines.push(currentChar);
+                }
+            }
+            
+            return lines;
+        }
+        
+        // Undo handler
+        undoBtn.addEventListener('click', function() {
+            if (undoStack.length === 0) return;
+            
+            const action = undoStack.pop();
+            
+            // Save current state for redo
+            switch (action.type) {
+                case ACTION_TYPES.ADD:
+                    // For add action, we need to remove the stamp
+                    const stampToRemove = stampedPositions.find(stamp => stamp.id === action.data.id);
+                    if (stampToRemove) {
+                        const index = stampedPositions.findIndex(stamp => stamp.id === action.data.id);
+                        
+                        // If this stamp is being edited, exit edit mode
+                        if (activeStampId === action.data.id) {
+                            exitStampEditMode();
+                        }
+                        
+                        // Save to redo stack first
+                        redoStack.push({
+                            type: ACTION_TYPES.ADD,
+                            data: JSON.parse(JSON.stringify(stampToRemove))
+                        });
+                        
+                        // Then remove the stamp
+                        if (index !== -1) {
+                            stampedPositions.splice(index, 1);
+                            
+                            // Decrement the current stamp index
+                            // This is the key change - when undoing an add, go back to previous stamp
+                            if (currentStampIndex > 0) {
+                                currentStampIndex--;
+                                // Enable stamping if it was disabled due to reaching the end
+                                if (isStampingActive === false && currentStampIndex < stamps.length) {
+                                    isStampingActive = true;
+                                    stampOverlay.style.cursor = 'crosshair';
+                                }
+                            }
+                            updateCurrentStampDisplay();
+                            checkStartStampingEnabled();
+                        }
+                    }
+                    break;
+                
+                case ACTION_TYPES.MOVE:
+                    // For move action, we need to restore the previous position
+                    const stampToMoveBack = stampedPositions.find(stamp => stamp.id === action.data.id);
+                    if (stampToMoveBack) {
+                        // Save current position for redo
+                        redoStack.push({
+                            type: ACTION_TYPES.MOVE,
+                            data: {
+                                id: stampToMoveBack.id,
+                                oldX: stampToMoveBack.x,
+                                oldY: stampToMoveBack.y,
+                                newX: action.data.oldX,
+                                newY: action.data.oldY
+                            }
+                        });
+                        
+                        // Restore the previous position
+                        stampToMoveBack.x = action.data.oldX;
+                        stampToMoveBack.y = action.data.oldY;
+                    }
+                    break;
+                
+                case ACTION_TYPES.RESIZE:
+                    // For resize action, we need to restore the previous size
+                    const stampToResizeBack = stampedPositions.find(stamp => stamp.id === action.data.id);
+                    if (stampToResizeBack) {
+                        // Save current size for redo
+                        redoStack.push({
+                            type: ACTION_TYPES.RESIZE,
+                            data: {
+                                id: stampToResizeBack.id,
+                                oldWidth: stampToResizeBack.width,
+                                oldHeight: stampToResizeBack.height,
+                                newWidth: action.data.oldWidth,
+                                newHeight: action.data.oldHeight
+                            }
+                        });
+                        
+                        // Restore the previous size
+                        stampToResizeBack.width = action.data.oldWidth;
+                        stampToResizeBack.height = action.data.oldHeight;
+                    }
+                    break;
+                
+                case ACTION_TYPES.ADD_FIELD:
+                    // For add field action, remove the field
+                    const fieldToRemove = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToRemove) {
+                        const index = selectedAnswerFields.findIndex(field => field.id === action.data.id);
+                        
+                        // Save to redo stack first
+                        redoStack.push({
+                            type: ACTION_TYPES.ADD_FIELD,
+                            data: JSON.parse(JSON.stringify(fieldToRemove))
+                        });
+                        
+                        // Then remove the field
+                        if (index !== -1) {
+                            selectedAnswerFields.splice(index, 1);
+                            updateFieldsUI();
+                        }
+                    }
+                    break;
+                
+                case ACTION_TYPES.MOVE_FIELD:
+                    // For move field action, restore the previous position
+                    const fieldToMoveBack = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToMoveBack) {
+                        // Save current position for redo
+                        redoStack.push({
+                            type: ACTION_TYPES.MOVE_FIELD,
+                            data: {
+                                id: fieldToMoveBack.id,
+                                oldX: fieldToMoveBack.x,
+                                oldY: fieldToMoveBack.y,
+                                newX: action.data.oldX,
+                                newY: action.data.oldY
+                            }
+                        });
+                        
+                        // Restore the previous position
+                        fieldToMoveBack.x = action.data.oldX;
+                        fieldToMoveBack.y = action.data.oldY;
+                    }
+                    break;
+                
+                case ACTION_TYPES.RESIZE_FIELD:
+                    // For resize field action, restore the previous size
+                    const fieldToResizeBack = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToResizeBack) {
+                        // Save current size for redo
+                        redoStack.push({
+                            type: ACTION_TYPES.RESIZE_FIELD,
+                            data: {
+                                id: fieldToResizeBack.id,
+                                oldWidth: fieldToResizeBack.width,
+                                oldHeight: fieldToResizeBack.height,
+                                newWidth: action.data.oldWidth,
+                                newHeight: action.data.oldHeight
+                            }
+                        });
+                        
+                        // Restore the previous size
+                        fieldToResizeBack.width = action.data.oldWidth;
+                        fieldToResizeBack.height = action.data.oldHeight;
+                    }
+                    break;
+                
+                case ACTION_TYPES.DELETE_FIELD:
+                    // For delete field action, restore the field
+                    redoStack.push({
+                        type: ACTION_TYPES.DELETE_FIELD,
+                        data: { id: action.data.id }
+                    });
+                    
+                    // Restore the field
+                    selectedAnswerFields.push(action.data.field);
+                    updateFieldsUI();
+                    break;
+                
+                case ACTION_TYPES.REORDER_FIELDS:
+                    // For reorder fields action, restore the previous order
+                    redoStack.push({
+                        type: ACTION_TYPES.REORDER_FIELDS,
+                        data: {
+                            newOrder: action.data.oldOrder,
+                            oldOrder: selectedAnswerFields.map(f => f.id)
+                        }
+                    });
+                    
+                    // Reorder fields based on the old order
+                    const oldOrderedFields = [];
+                    action.data.oldOrder.forEach(id => {
+                        const field = selectedAnswerFields.find(f => f.id === id);
+                        if (field) oldOrderedFields.push(field);
+                    });
+                    
+                    selectedAnswerFields = oldOrderedFields;
+                    updateFieldsUI();
+                    break;
+            }
+            
+            // Update UI
+            redrawStamps();
+            redrawFields();
+            updateUndoRedoButtons();
+        });
+        
+        // Redo handler
+        redoBtn.addEventListener('click', function() {
+            if (redoStack.length === 0) return;
+            
+            const action = redoStack.pop();
+            
+            // Apply the action and save to undo stack
+            switch (action.type) {
+                case ACTION_TYPES.ADD:
+                    // For add action, we need to add the stamp back
+                    stampedPositions.push(action.data);
+                    
+                    // Save to undo stack
+                    undoStack.push({
+                        type: ACTION_TYPES.ADD,
+                        data: { id: action.data.id }
+                    });
+                    
+                    // Increment current stamp index since we're re-adding a stamp
+                    if (currentStampIndex < stamps.length) {
+                        currentStampIndex++;
+                        // If we've used all stamps, disable stamping
+                        if (currentStampIndex >= stamps.length) {
+                            isStampingActive = false;
+                            stampOverlay.style.cursor = 'default';
+                        }
+                        updateCurrentStampDisplay();
+                        checkStartStampingEnabled();
+                    }
+                    break;
+                
+                case ACTION_TYPES.MOVE:
+                    // For move action, we need to apply the move again
+                    const stampToMove = stampedPositions.find(stamp => stamp.id === action.data.id);
+                    if (stampToMove) {
+                        // Save current position for undo
+                        undoStack.push({
+                            type: ACTION_TYPES.MOVE,
+                            data: {
+                                id: stampToMove.id,
+                                oldX: stampToMove.x,
+                                oldY: stampToMove.y,
+                                newX: action.data.newX,
+                                newY: action.data.newY
+                            }
+                        });
+                        
+                        // Apply the move
+                        stampToMove.x = action.data.newX;
+                        stampToMove.y = action.data.newY;
+                    }
+                    break;
+                
+                case ACTION_TYPES.RESIZE:
+                    // For resize action, we need to apply the resize again
+                    const stampToResize = stampedPositions.find(stamp => stamp.id === action.data.id);
+                    if (stampToResize) {
+                        // Save current size for undo
+                        undoStack.push({
+                            type: ACTION_TYPES.RESIZE,
+                            data: {
+                                id: stampToResize.id,
+                                oldWidth: stampToResize.width,
+                                oldHeight: stampToResize.height,
+                                newWidth: action.data.newWidth,
+                                newHeight: action.data.newHeight
+                            }
+                        });
+                        
+                        // Apply the resize
+                        stampToResize.width = action.data.newWidth;
+                        stampToResize.height = action.data.newHeight;
+                    }
+                    break;
+                
+                case ACTION_TYPES.ADD_FIELD:
+                    // For add field action, restore the field
+                    selectedAnswerFields.push(action.data);
+                    
+                    // Save to undo stack
+                    undoStack.push({
+                        type: ACTION_TYPES.ADD_FIELD,
+                        data: { id: action.data.id }
+                    });
+                    
+                    updateFieldsUI();
+                    break;
+                
+                case ACTION_TYPES.MOVE_FIELD:
+                    // For move field action, apply the move again
+                    const fieldToMove = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToMove) {
+                        // Save current position for undo
+                        undoStack.push({
+                            type: ACTION_TYPES.MOVE_FIELD,
+                            data: {
+                                id: fieldToMove.id,
+                                oldX: fieldToMove.x,
+                                oldY: fieldToMove.y,
+                                newX: action.data.newX,
+                                newY: action.data.newY
+                            }
+                        });
+                        
+                        // Apply the move
+                        fieldToMove.x = action.data.newX;
+                        fieldToMove.y = action.data.newY;
+                    }
+                    break;
+                
+                case ACTION_TYPES.RESIZE_FIELD:
+                    // For resize field action, apply the resize again
+                    const fieldToResize = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToResize) {
+                        // Save current size for undo
+                        undoStack.push({
+                            type: ACTION_TYPES.RESIZE_FIELD,
+                            data: {
+                                id: fieldToResize.id,
+                                oldWidth: fieldToResize.width,
+                                oldHeight: fieldToResize.height,
+                                newWidth: action.data.newWidth,
+                                newHeight: action.data.newHeight
+                            }
+                        });
+                        
+                        // Apply the resize
+                        fieldToResize.width = action.data.newWidth;
+                        fieldToResize.height = action.data.newHeight;
+                    }
+                    break;
+                
+                case ACTION_TYPES.DELETE_FIELD:
+                    // For delete field action, delete the field again
+                    const fieldToDelete = selectedAnswerFields.find(field => field.id === action.data.id);
+                    if (fieldToDelete) {
+                        const index = selectedAnswerFields.findIndex(field => field.id === action.data.id);
+                        
+                        // Save to undo stack first
+                        undoStack.push({
+                            type: ACTION_TYPES.DELETE_FIELD,
+                            data: {
+                                id: action.data.id,
+                                field: JSON.parse(JSON.stringify(fieldToDelete))
+                            }
+                        });
+                        
+                        // Then remove the field
+                        if (index !== -1) {
+                            selectedAnswerFields.splice(index, 1);
+                            updateFieldsUI();
+                        }
+                    }
+                    break;
+                
+                case ACTION_TYPES.REORDER_FIELDS:
+                    // For reorder fields action, apply the new order
+                    undoStack.push({
+                        type: ACTION_TYPES.REORDER_FIELDS,
+                        data: {
+                            oldOrder: action.data.oldOrder,
+                            newOrder: action.data.newOrder
+                        }
+                    });
+                    
+                    // Reorder fields based on the new order
+                    const newOrderedFields = [];
+                    action.data.newOrder.forEach(id => {
+                        const field = selectedAnswerFields.find(f => f.id === id);
+                        if (field) newOrderedFields.push(field);
+                    });
+                    
+                    selectedAnswerFields = newOrderedFields;
+                    updateFieldsUI();
+                    break;
+            }
+            
+            // Update UI
+            redrawStamps();
+            redrawFields();
+            updateUndoRedoButtons();
+        });
+        
+        // Function to render a page of the PDF
+        function renderPage(num) {
+            pageRendering = true;
+            loadingMessage.classList.remove('hidden');
+
+            pdfDoc.getPage(num).then(page => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                // Reset canvas transform
+                ctx.resetTransform();
+
+                // Adjust overlays to match canvas size
+                stampOverlay.style.width = `${viewport.width}px`;
+                stampOverlay.style.height = `${viewport.height}px`;
+                fieldOverlay.style.width = `${viewport.width}px`;
+                fieldOverlay.style.height = `${viewport.height}px`;
+                selectionOverlay.style.width = `${viewport.width}px`;
+                selectionOverlay.style.height = `${viewport.height}px`;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+
+                const renderTask = page.render(renderContext);
+
+                renderTask.promise.then(() => {
+                    pageRendering = false;
+                    loadingMessage.classList.add('hidden');
+
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+
+                    // Update page navigation UI
+                    pageInfo.textContent = `صفحة ${num} من ${pdfDoc.numPages}`;
+                    prevPageBtn.disabled = num <= 1;
+                    nextPageBtn.disabled = num >= pdfDoc.numPages;
+
+                    // Redraw stamps and fields for this page
+                    redrawStamps();
+                    redrawFields();
+                    
+                    // Update other UI elements based on current state
+                    updateButtonStates();
+                });
+            });
+        }
+        
+        // Function to queue a page render
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+        
+        // Navigation buttons
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage <= 1) return;
+            
+            // If a field is in edit mode, exit edit mode before navigating
+            if (activeFieldEditId) {
+                exitFieldEditMode();
+            }
+            
+            // If a stamp is in edit mode, exit edit mode before navigating
+            if (activeStampId) {
+                exitStampEditMode();
+            }
+            
+            currentPage--;
+            queueRenderPage(currentPage);
+        });
+        
+        nextPageBtn.addEventListener('click', () => {
+            if (currentPage >= pdfDoc.numPages) return;
+            
+            // If a field is in edit mode, exit edit mode before navigating
+            if (activeFieldEditId) {
+                exitFieldEditMode();
+            }
+            
+            // If a stamp is in edit mode, exit edit mode before navigating
+            if (activeStampId) {
+                exitStampEditMode();
+            }
+            
+            currentPage++;
+            queueRenderPage(currentPage);
+        });
+        
+        // Handle PDF file selection (premium feature)
+        pdfFileInput.addEventListener('change', function(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            if (this.files && this.files[0]) {
+                noFileMessage.classList.add('hidden');
+                loadingMessage.classList.remove('hidden');
+                
+                const file = this.files[0];
+                const fileReader = new FileReader();
+                
+                fileReader.onload = function(event) {
+                    const typedarray = new Uint8Array(event.target.result);
+                    
+                    pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                        pdfDoc = pdf;
+                        currentPage = 1;
+                        
+                        // Enable navigation buttons
+                        if (pdf.numPages > 1) {
+                            nextPageBtn.disabled = false;
+                        }
+                        
+                        // Reset stamping when loading new PDF
+                        resetStamping();
+                        
+                        // Render the first page
+                        renderPage(currentPage);
+                        
+                        // Enable project export if we have a PDF
+                        exportProjectBtn.disabled = false;
+                        
+                        // Check if stamps are loaded to enable stamping
+                        checkStartStampingEnabled();
+                        
+                        // Update other UI elements based on the new state
+                        updateButtonStates();
+                    }).catch(error => {
+                        Swal.fire({
+                            title: 'خطأ',
+                            text: 'خطأ في تحميل ملف PDF: ' + error.message,
+                            icon: 'error',
+                            confirmButtonText: 'حسناً',
+                        });
+                        loadingMessage.classList.add('hidden');
+                        noFileMessage.classList.remove('hidden');
+                    });
+                };
+                
+                fileReader.readAsArrayBuffer(file);
+            }
+        });
+        
+        // Handle stamps file selection (premium feature)
+        stampsFileInput.addEventListener('change', function(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const fileReader = new FileReader();
+                
+                fileReader.onload = function(event) {
+                    const content = event.target.result;
+                    stamps = content.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                    
+                    // Reset stamping when loading new stamps
+                    currentStampIndex = 0;
+                    updateCurrentStampDisplay();
+                    
+                    // Check if we can enable stamping
+                    checkStartStampingEnabled();
+                };
+                
+                fileReader.readAsText(file);
+            }
+        });
+        
+        // Update current stamp display
+        function updateCurrentStampDisplay() {
+            if (stamps.length === 0) {
+                currentStampElement.textContent = 'لم يتم تحميل أختام';
+            } else if (currentStampIndex >= stamps.length) {
+                currentStampElement.textContent = 'تم استخدام جميع الأختام';
+            } else {
+                currentStampElement.textContent = stamps[currentStampIndex];
+            }
+            
+            // Update place next stamp button
+            placeNextStampBtn.disabled = !(stamps.length > 0 && currentStampIndex < stamps.length);
+        }
+        
+        // Check if start stamping button should be enabled
+        function checkStartStampingEnabled() {
+            startStampingBtn.disabled = !(pdfDoc && stamps.length > 0 && currentStampIndex < stamps.length);
+            resetBtn.disabled = !(pdfDoc || stamps.length > 0 || selectedAnswerFields.length > 0);
+            placeNextStampBtn.disabled = !(stamps.length > 0 && currentStampIndex < stamps.length);
+        }
+        
+        // Start stamping button click handler
+        startStampingBtn.addEventListener('click', function() {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            isStampingActive = true;
+            this.disabled = true;
+            stampOverlay.style.cursor = 'crosshair';
+            setAppMode(APP_MODES.STAMP);
+        });
+        
+        // Reset button click handler
+        resetBtn.addEventListener('click', function() {
+            resetStamping();
+        });
+        
+        // Reset stamping state
+        function resetStamping() {
+            isStampingActive = false;
+            currentStampIndex = 0;
+            stampedPositions = [];
+            undoStack = [];
+            redoStack = [];
+            
+            // Exit any active edit modes
+            exitFieldEditMode();
+            exitStampEditMode();
+            
+            stampOverlay.innerHTML = '';
+            stampOverlay.style.cursor = 'default';
+            updateCurrentStampDisplay();
+            checkStartStampingEnabled();
+            updateUndoRedoButtons();
+            saveStampedPdfBtn.disabled = true;
+        }
+        
+        // Function to update the fields UI
+        function updateFieldsUI() {
+            // Update field count
+            fieldCountEl.textContent = `${selectedAnswerFields.length} حقل`;
+            
+            // Update fields list
+            if (selectedAnswerFields.length === 0) {
+                fieldsListEl.innerHTML = `
+                    <li class="text-center text-gray-500 dark:text-gray-400 py-2">
+                        لا توجد حقول محددة
+                    </li>
+                `;
+            } else {
+                fieldsListEl.innerHTML = '';
+                selectedAnswerFields.forEach((field, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center py-1 border-b border-gray-300 dark:border-gray-600 last:border-0';
+                    li.innerHTML = `
+                        <span class="font-bold">${index + 1}. صفحة ${field.page}</span>
+                        <button class="text-red-500 hover:text-red-700 ${!isPremiumUser ? 'premium-feature' : ''}" data-field-id="${field.id}">
+                            <i class="fas fa-trash"></i>
+                            ${!isPremiumUser ? '<i class="fas fa-lock premium-lock"></i>' : ''}
+                        </button>
+                    `;
+                    
+                    // Add delete handler
+                    const deleteBtn = li.querySelector('button');
+                    deleteBtn.addEventListener('click', function() {
+                        if (checkPremiumAccess()) {
+                            deleteField(field.id);
+                        }
+                    });
+                    
+                    fieldsListEl.appendChild(li);
+                });
+            }
+            
+            // Update reorder button
+            reorderFieldsBtn.disabled = selectedAnswerFields.length < 2;
+            
+            // Update place next stamp button
+            placeNextStampBtn.disabled = !(stamps.length > 0 && currentStampIndex < stamps.length);
+            
+            // Enable project export if we have fields
+            exportProjectBtn.disabled = !(pdfDoc || selectedAnswerFields.length > 0);
+            
+            // Hide premium locks if user is premium
+            if (isPremiumUser) {
+                fieldsListEl.querySelectorAll('.premium-lock').forEach(lock => {
+                    lock.style.display = 'none';
+                });
+            }
+        }
+        
+        // Function to delete a field
+        function deleteField(fieldId) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            const fieldIndex = selectedAnswerFields.findIndex(f => f.id === fieldId);
+            if (fieldIndex === -1) return;
+            
+            const field = selectedAnswerFields[fieldIndex];
+            
+            // If this field is in edit mode, exit edit mode
+            if (activeFieldEditId === fieldId) {
+                exitFieldEditMode();
+            }
+            
+            // Record for undo
+            recordAction(ACTION_TYPES.DELETE_FIELD, {
+                id: fieldId,
+                field: JSON.parse(JSON.stringify(field))
+            });
+            
+            // Remove the field
+            selectedAnswerFields.splice(fieldIndex, 1);
+            
+            // Update UI
+            updateFieldsUI();
+            redrawFields();
+        }
+        
+        // Function to clear all fields
+        function clearAllFields() {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            if (selectedAnswerFields.length === 0) return;
+            
+            // Exit edit mode if active
+            if (activeFieldEditId) {
+                exitFieldEditMode();
+            }
+            
+            Swal.fire({
+                title: 'هل أنت متأكد؟',
+                text: 'سيتم حذف جميع الحقول. هذا الإجراء لا يمكن التراجع عنه!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، احذف الكل',
+                cancelButtonText: 'إلغاء',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Record each field deletion for undo
+                    const fieldsToDelete = [...selectedAnswerFields];
+                    fieldsToDelete.forEach(field => {
+                        recordAction(ACTION_TYPES.DELETE_FIELD, {
+                            id: field.id,
+                            field: JSON.parse(JSON.stringify(field))
+                        });
+                    });
+                    
+                    // Clear fields
+                    selectedAnswerFields = [];
+                    
+                    // Update UI
+                    updateFieldsUI();
+                    redrawFields();
+                    
+                    Swal.fire(
+                        'تم الحذف!',
+                        'تم حذف جميع الحقول بنجاح.',
+                        'success',
+                    );
+                }
+            });
+        }
+        
+        // Show reorder modal
+        function showReorderModal() {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            if (selectedAnswerFields.length < 2) return;
+            
+            // Exit edit mode if active
+            if (activeFieldEditId) {
+                exitFieldEditMode();
+            }
+            
+            // Populate sortable list
+            sortableFieldsList.innerHTML = '';
+            selectedAnswerFields.forEach((field, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center p-2 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 cursor-move';
+                li.draggable = true;
+                li.dataset.fieldId = field.id;
+                li.innerHTML = `
+                    <div class="mr-2 text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                    <span class="font-bold ml-2">${index + 1}.</span>
+                    <span class="ml-2">صفحة ${field.page}</span>
+                `;
+                
+                // Add drag event handlers
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('drop', handleDrop);
+                li.addEventListener('dragend', handleDragEnd);
+                
+                sortableFieldsList.appendChild(li);
+            });
+            
+            // Show modal
+            reorderModal.classList.remove('hidden');
+            reorderModal.classList.add('flex');
+        }
+        
+        // Hide reorder modal
+        function hideReorderModal() {
+            reorderModal.classList.add('hidden');
+            reorderModal.classList.remove('flex');
+        }
+        
+        // Save the new field order
+        function saveFieldOrder() {
+            // Premium check
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                hideReorderModal();
+                return;
+            }
+            
+            // Get the new order of field IDs
+            const newOrder = Array.from(sortableFieldsList.children).map(li => li.dataset.fieldId);
+            
+            // Record for undo (if there's an actual change)
+            const oldOrder = selectedAnswerFields.map(f => f.id);
+            if (JSON.stringify(oldOrder) !== JSON.stringify(newOrder)) {
+                recordAction(ACTION_TYPES.REORDER_FIELDS, {
+                    oldOrder,
+                    newOrder
+                });
+                
+                // Reorder the fields
+                const reorderedFields = [];
+                newOrder.forEach(id => {
+                    const field = selectedAnswerFields.find(f => f.id === id);
+                    if (field) reorderedFields.push(field);
+                });
+                
+                selectedAnswerFields = reorderedFields;
+                
+                // Update UI
+                updateFieldsUI();
+                redrawFields();
+            }
+            
+            // Hide modal
+            hideReorderModal();
+        }
+        
+        // Drag and drop handlers for reordering fields
+        let dragSrcElement = null;
+        
+        function handleDragStart(e) {
+            dragSrcElement = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.fieldId);
+            this.classList.add('opacity-50');
+        }
+        
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+        
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (dragSrcElement !== this) {
+                const srcId = e.dataTransfer.getData('text/plain');
+                const srcElem = document.querySelector(`li[data-field-id="${srcId}"]`);
+                const srcIndex = Array.from(sortableFieldsList.children).indexOf(srcElem);
+                const destIndex = Array.from(sortableFieldsList.children).indexOf(this);
+                
+                if (srcIndex < destIndex) {
+                    sortableFieldsList.insertBefore(srcElem, this.nextSibling);
+                } else {
+                    sortableFieldsList.insertBefore(srcElem, this);
+                }
+            }
+            
+            return false;
+        }
+        
+        function handleDragEnd() {
+            this.classList.remove('opacity-50');
+            
+            // Update ordering numbers
+            const items = Array.from(sortableFieldsList.children);
+            items.forEach((item, index) => {
+                const numEl = item.querySelector('.font-bold');
+                if (numEl) numEl.textContent = `${index + 1}.`;
+            });
+        }
+        
+        // Function to add a field
+        function addField(x, y, width, height, page) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            const fieldId = `field_${Date.now()}`;
+            
+            // Create field data
+            const fieldData = {
+                id: fieldId,
+                x,
+                y,
+                width,
+                height,
+                page
+            };
+            
+            // Add to fields array
+            selectedAnswerFields.push(fieldData);
+            
+            // Record action for undo
+            recordAction(ACTION_TYPES.ADD_FIELD, fieldData);
+            
+            // Update UI
+            updateFieldsUI();
+            
+            // Create visual field
+            createFieldElement(fieldData);
+        }
+        
+        // Function to create a field element
+        function createFieldElement(field) {
+            // Only create if on current page
+            if (field.page !== currentPage) return;
+            
+            const fieldElem = document.createElement('div');
+            fieldElem.className = 'answer-field';
+            fieldElem.dataset.fieldId = field.id;
+            fieldElem.style.left = `${field.x}px`;
+            fieldElem.style.top = `${field.y}px`;
+            fieldElem.style.width = `${field.width}px`;
+            fieldElem.style.height = `${field.height}px`;
+            
+            // Find the field's position in the array (for numbering)
+            const fieldIndex = selectedAnswerFields.findIndex(f => f.id === field.id);
+            
+            // Add field number
+            const fieldNumber = document.createElement('div');
+            fieldNumber.className = 'field-number';
+            fieldNumber.textContent = fieldIndex + 1;
+            fieldElem.appendChild(fieldNumber);
+            
+            // Add delete button with premium check
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-field';
+            if (!isPremiumUser) {
+                deleteBtn.classList.add('premium-feature');
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i><i class="fas fa-lock premium-lock"></i>';
+            } else {
+                deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+            }
+            deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (checkPremiumAccess()) {
+                    deleteField(field.id);
+                }
+            });
+            fieldElem.appendChild(deleteBtn);
+            
+            // Add edit button with premium check
+            const editBtn = document.createElement('div');
+            editBtn.className = 'edit-field';
+            if (!isPremiumUser) {
+                editBtn.classList.add('premium-feature');
+                editBtn.innerHTML = '<i class="fas fa-pen"></i><i class="fas fa-lock premium-lock"></i>';
+            } else {
+                editBtn.innerHTML = '<i class="fas fa-pen"></i>';
+            }
+            editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (checkPremiumAccess()) {
+                    enterFieldEditMode(field.id);
+                }
+            });
+            fieldElem.appendChild(editBtn);
+            
+            // Add save button with premium check
+            const saveBtn = document.createElement('div');
+            saveBtn.className = 'save-field';
+            if (!isPremiumUser) {
+                saveBtn.classList.add('premium-feature');
+                saveBtn.innerHTML = '<i class="fas fa-check"></i><i class="fas fa-lock premium-lock"></i>';
+            } else {
+                saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            }
+            saveBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (checkPremiumAccess()) {
+                    exitFieldEditMode();
+                }
+            });
+            fieldElem.appendChild(saveBtn);
+            
+            // Add resize handles (hidden by default)
+            // Width handle
+            const widthHandle = document.createElement('div');
+            widthHandle.className = 'field-resize-handle width';
+            widthHandle.dataset.resizeType = 'width';
+            fieldElem.appendChild(widthHandle);
+            
+            // Height handle
+            const heightHandle = document.createElement('div');
+            heightHandle.className = 'field-resize-handle height';
+            heightHandle.dataset.resizeType = 'height';
+            fieldElem.appendChild(heightHandle);
+            
+            // Both handle
+            const bothHandle = document.createElement('div');
+            bothHandle.className = 'field-resize-handle both';
+            bothHandle.dataset.resizeType = 'both';
+            fieldElem.appendChild(bothHandle);
+            
+            // Add dimensions label
+            const dimensions = document.createElement('div');
+            dimensions.className = 'field-dimensions';
+            dimensions.textContent = `${field.width} × ${field.height}`;
+            dimensions.style.display = 'none';
+            fieldElem.appendChild(dimensions);
+            
+            // Add mouse event listeners for resizing (only activated in edit mode)
+            widthHandle.addEventListener('mousedown', startFieldResize);
+            widthHandle.addEventListener('touchstart', startFieldResize, { passive: false });
+            
+            heightHandle.addEventListener('mousedown', startFieldResize);
+            heightHandle.addEventListener('touchstart', startFieldResize, { passive: false });
+            
+            bothHandle.addEventListener('mousedown', startFieldResize);
+            bothHandle.addEventListener('touchstart', startFieldResize, { passive: false });
+            
+            // Add to field overlay
+            fieldOverlay.appendChild(fieldElem);
+            
+            // Hide premium locks if user is premium
+            if (isPremiumUser) {
+                fieldElem.querySelectorAll('.premium-lock').forEach(lock => {
+                    lock.style.display = 'none';
+                });
+            }
+        }
+        
+        // Function to enter edit mode for a field
+        function enterFieldEditMode(fieldId) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            // If there's already an active edit field, exit that first
+            if (activeFieldEditId && activeFieldEditId !== fieldId) {
+                exitFieldEditMode();
+            }
+            
+            activeFieldEditId = fieldId;
+            
+            // Update the field element
+            const fieldElem = document.querySelector(`.answer-field[data-field-id="${fieldId}"]`);
+            if (!fieldElem) return;
+            
+            // Add editing class and show dimensions
+            fieldElem.classList.add('editing');
+            
+            // Show dimensions of the field
+            const dimensions = fieldElem.querySelector('.field-dimensions');
+            if (dimensions) {
+                dimensions.style.display = 'block';
+                
+                // Get the current field data
+                const field = selectedAnswerFields.find(f => f.id === fieldId);
+                if (field) {
+                    dimensions.textContent = `${field.width} × ${field.height}`;
+                }
+            }
+            
+            // Add event listener for dragging in edit mode
+            fieldElem.addEventListener('mousedown', startFieldDrag);
+            fieldElem.addEventListener('touchstart', startFieldDrag, { passive: false });
+        }
+        
+        // Function to exit edit mode for a field
+        function exitFieldEditMode() {
+            if (!activeFieldEditId) return;
+            
+            // Get the field element
+            const fieldElem = document.querySelector(`.answer-field[data-field-id="${activeFieldEditId}"]`);
+            if (fieldElem) {
+                // Remove editing class
+                fieldElem.classList.remove('editing');
+                
+                // Hide dimensions
+                const dimensions = fieldElem.querySelector('.field-dimensions');
+                if (dimensions) {
+                    dimensions.style.display = 'none';
+                }
+                
+                // Remove event listener for dragging
+                fieldElem.removeEventListener('mousedown', startFieldDrag);
+                fieldElem.removeEventListener('touchstart', startFieldDrag);
+            }
+            
+            activeFieldEditId = null;
+        }
+        
+        // Start resizing a field
+        function startFieldResize(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Get the field element (parent of the resize handle)
+            const fieldElem = this.parentNode;
+            const fieldId = fieldElem.dataset.fieldId;
+            
+            // Get initial dimensions
+            const startWidth = parseInt(fieldElem.style.width);
+            const startHeight = parseInt(fieldElem.style.height);
+            
+            // Get initial position (for touch events)
+            const startX = e.clientX || (e.touches && e.touches[0].clientX);
+            const startY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            // Get resize type (width, height, or both)
+            const resizeType = this.dataset.resizeType;
+            
+            // Get dimensions display element
+            const dimensionsElem = fieldElem.querySelector('.field-dimensions');
+            
+            // Function to handle resizing
+            function resizeField(e) {
+                const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+                const currentY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                const dx = currentX - startX;
+                const dy = currentY - startY;
+                
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+                
+                // Update dimensions based on resize type
+                if (resizeType === 'width' || resizeType === 'both') {
+                    newWidth = Math.max(20, startWidth + dx);
+                    fieldElem.style.width = `${newWidth}px`;
+                }
+                
+                if (resizeType === 'height' || resizeType === 'both') {
+                    newHeight = Math.max(20, startHeight + dy);
+                    fieldElem.style.height = `${newHeight}px`;
+                }
+                
+                // Update dimensions display
+                if (dimensionsElem) {
+                    dimensionsElem.textContent = `${newWidth} × ${newHeight}`;
+                }
+            }
+            
+            // Function to stop resizing
+            function stopFieldResize(e) {
+                document.removeEventListener('mousemove', resizeField);
+                document.removeEventListener('touchmove', resizeField);
+                document.removeEventListener('mouseup', stopFieldResize);
+                document.removeEventListener('touchend', stopFieldResize);
+                
+                // Get the final dimensions
+                const finalWidth = parseInt(fieldElem.style.width);
+                const finalHeight = parseInt(fieldElem.style.height);
+                
+                // Find and update the field data
+                const fieldIndex = selectedAnswerFields.findIndex(f => f.id === fieldId);
+                if (fieldIndex !== -1) {
+                    const field = selectedAnswerFields[fieldIndex];
+                    
+                    // Only record if there was a change
+                    if (field.width !== finalWidth || field.height !== finalHeight) {
+                        // Record for undo
+                        recordAction(ACTION_TYPES.RESIZE_FIELD, {
+                            id: fieldId,
+                            oldWidth: field.width,
+                            oldHeight: field.height,
+                            newWidth: finalWidth,
+                            newHeight: finalHeight
+                        });
+                        
+                        // Update the field
+                        field.width = finalWidth;
+                        field.height = finalHeight;
+                    }
+                }
+            }
+            
+            // Add event listeners
+            document.addEventListener('mousemove', resizeField);
+            document.addEventListener('touchmove', resizeField, { passive: false });
+            document.addEventListener('mouseup', stopFieldResize);
+            document.addEventListener('touchend', stopFieldResize);
+        }
+        
+        // Start dragging a field
+        function startFieldDrag(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            // Skip if this is a child element like button or resize handle
+            if (e.target.classList.contains('delete-field') ||
+                e.target.classList.contains('edit-field') ||
+                e.target.classList.contains('save-field') ||
+                e.target.classList.contains('field-resize-handle') ||
+                e.target.tagName === 'I') return;
+            
+            // Only allow dragging in edit mode
+            if (this.dataset.fieldId !== activeFieldEditId) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isFieldDragActive = true;
+            activeFieldElem = this;
+            const fieldId = this.dataset.fieldId;
+            
+            // Calculate offset from mouse to field corner
+            const rect = this.getBoundingClientRect();
+            
+            // Get either mouse or touch coordinates
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            fieldDragOffset.x = clientX - rect.left;
+            fieldDragOffset.y = clientY - rect.top;
+            
+            // Find the field for recording original position
+            const fieldIndex = selectedAnswerFields.findIndex(f => f.id === fieldId);
+            const originalX = selectedAnswerFields[fieldIndex].x;
+            const originalY = selectedAnswerFields[fieldIndex].y;
+            
+            // Function to handle dragging
+            function dragField(e) {
+                if (!isFieldDragActive) return;
+                
+                const overlay = fieldOverlay;
+                const rect = overlay.getBoundingClientRect();
+                
+                // Get current position (mouse or touch)
+                const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+                const currentY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                // Calculate new position
+                const newX = currentX - rect.left - fieldDragOffset.x;
+                const newY = currentY - rect.top - fieldDragOffset.y;
+                
+                // Update the field element
+                activeFieldElem.style.left = `${newX}px`;
+                activeFieldElem.style.top = `${newY}px`;
+            }
+            
+            // Function to stop dragging
+            function stopFieldDrag(e) {
+                if (!isFieldDragActive) return;
+                
+                isFieldDragActive = false;
+                
+                document.removeEventListener('mousemove', dragField);
+                document.removeEventListener('touchmove', dragField);
+                document.removeEventListener('mouseup', stopFieldDrag);
+                document.removeEventListener('touchend', stopFieldDrag);
+                
+                // Get the final position
+                const finalX = parseInt(activeFieldElem.style.left);
+                const finalY = parseInt(activeFieldElem.style.top);
+                
+                // Find and update the field data
+                const fieldIndex = selectedAnswerFields.findIndex(f => f.id === fieldId);
+                if (fieldIndex !== -1) {
+                    // Only record if there was a change
+                    if (originalX !== finalX || originalY !== finalY) {
+                        // Record for undo
+                        recordAction(ACTION_TYPES.MOVE_FIELD, {
+                            id: fieldId,
+                            oldX: originalX,
+                            oldY: originalY,
+                            newX: finalX,
+                            newY: finalY
+                        });
+                        
+                        // Update the field
+                        selectedAnswerFields[fieldIndex].x = finalX;
+                        selectedAnswerFields[fieldIndex].y = finalY;
+                    }
+                }
+                
+                activeFieldElem = null;
+            }
+            
+            // Add event listeners
+            document.addEventListener('mousemove', dragField);
+            document.addEventListener('touchmove', dragField, { passive: false });
+            document.addEventListener('mouseup', stopFieldDrag);
+            document.addEventListener('touchend', stopFieldDrag);
+        }
+        
+        // Function to redraw all fields for the current page
+        function redrawFields() {
+            // Clear the field overlay
+            fieldOverlay.innerHTML = '';
+            fieldOverlay.style.display = 'block';
+            
+            // Create fields for current page
+            selectedAnswerFields.forEach(field => {
+                if (field.page === currentPage) {
+                    createFieldElement(field);
+                    
+                    // If field was in edit mode, re-enter edit mode
+                    if (activeFieldEditId === field.id) {
+                        enterFieldEditMode(field.id);
+                    }
+                }
+            });
+        }
+        
+        // Place next stamp button click handler
+        placeNextStampBtn.addEventListener('click', function() {
+            if (currentStampIndex >= stamps.length) return;
+            
+            // If there are fields, use them
+            if (selectedAnswerFields.length > 0) {
+                // Find the next appropriate field (on any page)
+                if (currentStampIndex < selectedAnswerFields.length) {
+                    const targetField = selectedAnswerFields[currentStampIndex];
+                    
+                    // If field is on a different page, navigate to it
+                    if (targetField.page !== currentPage) {
+                        // Exit any active edit modes
+                        if (activeFieldEditId) {
+                            exitFieldEditMode();
+                        }
+                        if (activeStampId) {
+                            exitStampEditMode();
+                        }
+                        
+                        currentPage = targetField.page;
+                        queueRenderPage(currentPage);
+                        
+                        // Delay placing the stamp until the page is rendered
+                        const checkRendering = setInterval(() => {
+                            if (!pageRendering) {
+                                clearInterval(checkRendering);
+                                placeStampInField(targetField);
+                            }
+                        }, 100);
+                    } else {
+                        // Place stamp immediately
+                        placeStampInField(targetField);
+                    }
+                } else {
+                    // If we have more stamps than fields, wrap around
+                    let fieldIdx = currentStampIndex % selectedAnswerFields.length;
+                    const targetField = selectedAnswerFields[fieldIdx];
+                    
+                    // If field is on a different page, navigate to it
+                    if (targetField.page !== currentPage) {
+                        // Exit any active edit modes
+                        if (activeFieldEditId) {
+                            exitFieldEditMode();
+                        }
+                        if (activeStampId) {
+                            exitStampEditMode();
+                        }
+                        
+                        currentPage = targetField.page;
+                        queueRenderPage(currentPage);
+                        
+                        // Delay placing the stamp until the page is rendered
+                        const checkRendering = setInterval(() => {
+                            if (!pageRendering) {
+                                clearInterval(checkRendering);
+                                placeStampInField(targetField);
+                            }
+                        }, 100);
+                    } else {
+                        // Place stamp immediately
+                        placeStampInField(targetField);
+                    }
+                }
+            } else {
+                // No fields - place stamp in center of current page
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                
+                // Get the stamp dimensions
+                const stampWidth = parseInt(stampInitialWidthInput.value, 10);
+                const stampHeight = parseInt(stampInitialHeightInput.value, 10);
+                
+                // Calculate center position
+                const centerX = (canvasWidth - stampWidth) / 2;
+                const centerY = (canvasHeight - stampHeight) / 2;
+                
+                // Add stamp
+                const stampText = stamps[currentStampIndex];
+                const newStampId = addStamp(stampText, centerX, centerY, currentPage);
+                
+                // Enter edit mode for the new stamp
+                if (newStampId) {
+                    // Reset any previous editing
+                    exitStampEditMode();
+                    enterStampEditMode(newStampId);
+                }
+                
+                // Move to next stamp
+                currentStampIndex++;
+                updateCurrentStampDisplay();
+                
+                // Check if we've used all stamps
+                checkStartStampingEnabled();
+            }
+        });
+        
+        // Function to place a stamp in a field
+        function placeStampInField(field) {
+            if (currentStampIndex >= stamps.length) return;
+            
+            const stampText = stamps[currentStampIndex];
+            
+            // Exit any active stamp edit mode
+            exitStampEditMode();
+            
+            // Place stamp at field position with field dimensions
+            const newStampId = addStamp(stampText, field.x, field.y, field.page, field.width, field.height);
+            
+            // Enter edit mode for the new stamp
+            if (newStampId) {
+                enterStampEditMode(newStampId);
+            }
+            
+            // Move to next stamp
+            currentStampIndex++;
+            updateCurrentStampDisplay();
+            
+            // Check if we've used all stamps
+            checkStartStampingEnabled();
+        }
+        
+        // Enter edit mode for a stamp
+        function enterStampEditMode(stampId) {
+            // Premium check
+            if (!isPremiumUser) {
+                return;
+            }
+            
+            // Exit any active stamp edit mode first
+            if (activeStampId && activeStampId !== stampId) {
+                exitStampEditMode();
+            }
+            
+            activeStampId = stampId;
+            
+            // Get the stamp element
+            const stampElem = document.querySelector(`.stamp-container[data-stamp-id="${stampId}"]`);
+            if (!stampElem) return;
+            
+            // Add editing class
+            stampElem.classList.add('editing');
+            
+            // Show all resize handles
+            const widthHandle = stampElem.querySelector('.stamp-resize-handle-width');
+            const heightHandle = stampElem.querySelector('.stamp-resize-handle-height');
+            const bothHandle = stampElem.querySelector('.stamp-resize-handle-both');
+            
+            if (widthHandle) widthHandle.style.display = 'flex';
+            if (heightHandle) heightHandle.style.display = 'flex';
+            if (bothHandle) bothHandle.style.display = 'flex';
+        }
+        
+        // Exit edit mode for a stamp
+        function exitStampEditMode() {
+            if (!activeStampId) return;
+            
+            // Get the stamp element
+            const stampElem = document.querySelector(`.stamp-container[data-stamp-id="${activeStampId}"]`);
+            if (stampElem) {
+                // Remove editing class
+                stampElem.classList.remove('editing');
+                
+                // Hide resize handles except corner one
+                const widthHandle = stampElem.querySelector('.stamp-resize-handle-width');
+                const heightHandle = stampElem.querySelector('.stamp-resize-handle-height');
+                
+                if (widthHandle) widthHandle.style.display = 'none';
+                if (heightHandle) heightHandle.style.display = 'none';
+            }
+            
+            activeStampId = null;
+        }
+        
+        // Add a stamp at the specified position
+        function addStamp(text, x, y, page, width, height) {
+            const stampColor = stampColorInput.value;
+            const stampSize = parseInt(stampSizeInput.value, 10);
+            const stampFont = stampFontInput.value;
+            const initialWidth = width || parseInt(stampInitialWidthInput.value, 10);
+            const initialHeight = height || parseInt(stampInitialHeightInput.value, 10);
+            const stampId = Date.now().toString();
+            const autoFit = autoFitCheckbox.checked;
+            
+            // Calculate the appropriate font size based on autoFit setting
+            let fontSize = stampSize;
+            if (autoFit) {
+                // First check if the text will fit at the original font size
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.font = `bold ${stampSize}px ${stampFont}`;
+                
+                // Calculate if the text fits with original size
+                const willFit = checkIfTextFits(tempCtx, text, initialWidth - 6, initialHeight - 6, stampSize);
+                
+                if (!willFit) {
+                    // Only calculate a smaller size if the text doesn't fit at the original size
+                    fontSize = calculateFittingFontSize(text, initialWidth, initialHeight, stampFont, stampSize);
+                }
+            }
+            
+            // Create stamp data object
+            const stampData = {
+                text,
+                x,
+                y,
+                width: initialWidth,
+                height: initialHeight,
+                page,
+                color: stampColor,
+                size: fontSize,
+                font: stampFont,
+                id: stampId,
+                stampIndex: currentStampIndex, // Store which stamp index this was
+                autoFit,
+                originalSize: stampSize // Store the original font size from settings
+            };
+            
+            // Store the stamped position
+            stampedPositions.push(stampData);
+            
+            // Record action for undo/redo
+            recordAction(ACTION_TYPES.ADD, stampData);
+            
+            // Create stamp on the UI
+            createStampElement(stampData);
+            
+            // Enable save button when at least one stamp has been added
+            saveStampedPdfBtn.disabled = false;
+            
+            return stampId;
+        }
+        
+        // Function to check if text will fit within dimensions at a given font size
+        function checkIfTextFits(ctx, text, maxWidth, maxHeight, fontSize) {
+            ctx.font = `bold ${fontSize}px ${ctx.fontFamily || 'Cairo'}`;
+            
+            // Check if single line fits width
+            const metrics = ctx.measureText(text);
+            const textWidth = metrics.width;
+            const lineHeight = fontSize * 1.2;
+            
+            if (textWidth <= maxWidth && lineHeight <= maxHeight) {
+                // Text fits on one line
+                return true;
+            } else if (textWidth > maxWidth) {
+                // Text needs wrapping - check if wrapped text fits height
+                const lines = wrapText(ctx, text, maxWidth);
+                const totalHeight = lines.length * lineHeight;
+                return totalHeight <= maxHeight;
+            }
+            
+            return false;
+        }
+        
+        // Function to create a stamp element
+        function createStampElement(stamp) {
+            // Only create if on current page
+            if (stamp.page !== currentPage) return;
+            
+            // Create a stamp container
+            const stampContainer = document.createElement('div');
+            stampContainer.className = 'stamp-container';
+            stampContainer.dataset.page = stamp.page;
+            stampContainer.dataset.stampId = stamp.id;
+            stampContainer.style.left = `${stamp.x}px`;
+            stampContainer.style.top = `${stamp.y}px`;
+            stampContainer.style.width = `${stamp.width}px`;
+            stampContainer.style.height = `${stamp.height}px`;
+            stampContainer.style.fontFamily = stamp.font;
+            
+            // Create the stamp content
+            const stampContent = document.createElement('div');
+            stampContent.className = 'stamp-content';
+            stampContent.textContent = stamp.text;
+            stampContent.style.color = stamp.color;
+            stampContent.style.fontSize = `${stamp.size}px`;
+            stampContent.style.fontWeight = 'bold';
+            
+            // Create resize handles
+            const widthResizeHandle = document.createElement('div');
+            widthResizeHandle.innerHTML = '<i class="fas fa-arrows-alt-h" aria-hidden="true"></i>';
+            widthResizeHandle.className = 'stamp-resize-handle-width';
+            widthResizeHandle.dataset.resizeType = 'width';
+            widthResizeHandle.style.display = 'none'; // Hidden by default
+            
+            const heightResizeHandle = document.createElement('div');
+            heightResizeHandle.innerHTML = '<i class="fas fa-arrows-alt-v" aria-hidden="true"></i>';
+            heightResizeHandle.className = 'stamp-resize-handle-height';
+            heightResizeHandle.dataset.resizeType = 'height';
+            heightResizeHandle.style.display = 'none'; // Hidden by default
+            
+            const bothResizeHandle = document.createElement('div');
+            bothResizeHandle.innerHTML = '<i class="fas fa-expand-arrows-alt" aria-hidden="true"></i>';
+            bothResizeHandle.className = 'stamp-resize-handle-both';
+            bothResizeHandle.dataset.resizeType = 'both';
+            
+            // Add mouse event listeners for resizing
+            widthResizeHandle.addEventListener('mousedown', startResize);
+            widthResizeHandle.addEventListener('touchstart', startResize, { passive: false });
+            
+            heightResizeHandle.addEventListener('mousedown', startResize);
+            heightResizeHandle.addEventListener('touchstart', startResize, { passive: false });
+            
+            bothResizeHandle.addEventListener('mousedown', startResize);
+            bothResizeHandle.addEventListener('touchstart', startResize, { passive: false });
+            
+            // Add mouse event listeners for dragging
+            stampContainer.addEventListener('mousedown', startDrag);
+            stampContainer.addEventListener('touchstart', startDrag, { passive: false });
+            
+            // Show resize handles on hover or when editing
+            stampContainer.addEventListener('mouseenter', function() {
+                if (stamp.id === activeStampId) return; // Already in edit mode
+                
+                bothResizeHandle.style.display = 'flex';
+            });
+            
+            stampContainer.addEventListener('mouseleave', function() {
+                if (stamp.id === activeStampId) return; // Keep visible if in edit mode
+                if (resizeActive) return; // Keep visible during resize
+                
+                // Only hide the corner handle if not in edit mode
+                if (stamp.id !== activeStampId) {
+                    bothResizeHandle.style.display = 'none';
+                }
+            });
+            
+            // Add click to edit handler
+            stampContainer.addEventListener('click', function(e) {
+                if (e.target === bothResizeHandle || 
+                    e.target === widthResizeHandle || 
+                    e.target === heightResizeHandle ||
+                    e.target.tagName === 'I') return; // Don't enter edit mode when clicking handles
+                
+                if (checkPremiumAccess()) {    
+                    enterStampEditMode(stamp.id);
+                }
+            });
+            
+            // Add content and handles to container
+            stampContainer.appendChild(stampContent);
+            stampContainer.appendChild(widthResizeHandle);
+            stampContainer.appendChild(heightResizeHandle);
+            stampContainer.appendChild(bothResizeHandle);
+            
+            // Add it to the overlay
+            stampOverlay.appendChild(stampContainer);
+            
+            // If this stamp should be in edit mode, make it so
+            if (stamp.id === activeStampId) {
+                enterStampEditMode(stamp.id);
+            }
+        }
+        
+        // Calculate a font size that will fit text within container
+        function calculateFittingFontSize(text, containerWidth, containerHeight, fontFamily, preferredSize = 40, minSize = 8) {
+            // Apply padding (3px on all sides)
+            const padding = 6; // 3px * 2 for both sides
+            const availableWidth = containerWidth - padding;
+            const availableHeight = containerHeight - padding;
+            
+            // Create a temporary canvas for text measurements
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.font = `bold ${preferredSize}px ${fontFamily}`;
+            
+            // First check if text fits at the preferred size
+            const metrics = tempCtx.measureText(text);
+            const textWidth = metrics.width;
+            const lineHeight = preferredSize * 1.2;
+            
+            // Check if text fits with preferred size
+            if (textWidth <= availableWidth && lineHeight <= availableHeight) {
+                // Text fits on single line at preferred size
+                return preferredSize;
+            }
+            
+            // Check if wrapped text fits with preferred size
+            const lines = wrapText(tempCtx, text, availableWidth);
+            const totalTextHeight = lines.length * lineHeight;
+            
+            if (totalTextHeight <= availableHeight) {
+                // Text fits when wrapped at preferred size
+                return preferredSize;
+            }
+            
+            // Text doesn't fit at preferred size, calculate a smaller size
+            let fontSize = preferredSize;
+            let fits = false;
+            
+            while (!fits && fontSize >= minSize) {
+                fontSize -= 1;
+                tempCtx.font = `bold ${fontSize}px ${fontFamily}`;
+                
+                // Check if single line fits width
+                const metrics = tempCtx.measureText(text);
+                const textWidth = metrics.width;
+                const lineHeight = fontSize * 1.2;
+                
+                if (textWidth <= availableWidth) {
+                    // If it fits on one line, check height
+                    if (lineHeight <= availableHeight) {
+                        fits = true;
+                    }
+                } else {
+                    // Text needs wrapping
+                    const lines = wrapText(tempCtx, text, availableWidth);
+                    const totalHeight = lines.length * lineHeight;
+                    
+                    if (totalHeight <= availableHeight) {
+                        fits = true;
+                    }
+                }
+            }
+            
+            return Math.max(fontSize, minSize);
+        }
+        
+        // Start resizing a stamp
+        function startResize(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Get the stamp container
+            const stampContainer = this.parentNode;
+            activeResizeStamp = stampContainer;
+            activeResizeType = this.dataset.resizeType;
+            resizeActive = true;
+            
+            // Make sure this stamp is in edit mode
+            if (stampContainer.dataset.stampId !== activeStampId) {
+                enterStampEditMode(stampContainer.dataset.stampId);
+            }
+            
+            // Get initial positions and dimensions
+            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            const startWidth = parseInt(window.getComputedStyle(stampContainer).width, 10);
+            const startHeight = parseInt(window.getComputedStyle(stampContainer).height, 10);
+            const startX = clientX;
+            const startY = clientY;
+            
+            // Store original dimensions for undo
+            const stampId = stampContainer.dataset.stampId;
+            const originalWidth = startWidth;
+            const originalHeight = startHeight;
+            
+            // Find the stamp data
+            const stampIndex = stampedPositions.findIndex(s => s.id === stampId);
+            const stampData = stampedPositions[stampIndex];
+            const autoFit = stampData.autoFit;
+            const originalSize = stampData.originalSize || parseInt(stampSizeInput.value, 10);
+            const stampContent = stampContainer.querySelector('.stamp-content');
+            
+            // Add event listeners for moving and stopping
+            document.addEventListener('mousemove', resizeStamp);
+            document.addEventListener('touchmove', resizeStamp, { passive: false });
+            document.addEventListener('mouseup', stopResize);
+            document.addEventListener('touchend', stopResize);
+            
+            // Function to handle resizing the stamp
+            function resizeStamp(e) {
+                if (!resizeActive) return;
+                e.preventDefault();
+                
+                const currentClientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const currentClientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                const dx = currentClientX - startX;
+                const dy = currentClientY - startY;
+                
+                if (activeResizeType === 'width' || activeResizeType === 'both') {
+                    // Calculate new width (minimum 20px)
+                    let newWidth = Math.max(20, startWidth + dx);
+                    stampContainer.style.width = `${newWidth}px`;
+                    
+                    // Update the width in stampedPositions
+                    if (stampIndex !== -1) {
+                        stampedPositions[stampIndex].width = newWidth;
+                        
+                        // If auto-fit is enabled, adjust font size 
+                        if (autoFit) {
+                            // Check if text fits at original size first
+                            const tempCanvas = document.createElement('canvas');
+                            const tempCtx = tempCanvas.getContext('2d');
+                            tempCtx.font = `bold ${originalSize}px ${stampData.font}`;
+                            
+                            // Calculate new dimensions
+                            let newHeight = stampData.height;
+                            if (activeResizeType === 'both') {
+                                newHeight = Math.max(20, startHeight + dy);
+                            }
+                            
+                            const willFit = checkIfTextFits(
+                                tempCtx, 
+                                stampData.text, 
+                                newWidth - 6, 
+                                newHeight - 6, 
+                                originalSize
+                            );
+                            
+                            // Use original size if it fits, otherwise calculate smaller size
+                            let newSize;
+                            if (willFit) {
+                                newSize = originalSize;
+                            } else {
+                                newSize = calculateFittingFontSize(
+                                    stampData.text,
+                                    newWidth,
+                                    newHeight,
+                                    stampData.font,
+                                    originalSize
+                                );
+                            }
+                            
+                            stampContent.style.fontSize = `${newSize}px`;
+                            stampedPositions[stampIndex].size = newSize;
+                        }
+                    }
+                }
+                
+                if (activeResizeType === 'height' || activeResizeType === 'both') {
+                    // Calculate new height (minimum 20px)
+                    let newHeight = Math.max(20, startHeight + dy);
+                    stampContainer.style.height = `${newHeight}px`;
+                    
+                    // Update the height in stampedPositions
+                    if (stampIndex !== -1) {
+                        stampedPositions[stampIndex].height = newHeight;
+                        
+                        // If auto-fit is enabled, adjust font size 
+                        if (autoFit) {
+                            // Check if text fits at original size first
+                            const tempCanvas = document.createElement('canvas');
+                            const tempCtx = tempCanvas.getContext('2d');
+                            tempCtx.font = `bold ${originalSize}px ${stampData.font}`;
+                            
+                            // Calculate new dimensions
+                            let newWidth = stampData.width;
+                            if (activeResizeType === 'both' || activeResizeType === 'width') {
+                                newWidth = Math.max(20, startWidth + dx);
+                            }
+                            
+                            const willFit = checkIfTextFits(
+                                tempCtx, 
+                                stampData.text, 
+                                newWidth - 6, 
+                                newHeight - 6, 
+                                originalSize
+                            );
+                            
+                            // Use original size if it fits, otherwise calculate smaller size
+                            let newSize;
+                            if (willFit) {
+                                newSize = originalSize;
+                            } else {
+                                newSize = calculateFittingFontSize(
+                                    stampData.text,
+                                    newWidth,
+                                    newHeight,
+                                    stampData.font,
+                                    originalSize
+                                );
+                            }
+                            
+                            stampContent.style.fontSize = `${newSize}px`;
+                            stampedPositions[stampIndex].size = newSize;
+                        }
+                    }
+                }
+            }
+            
+            // Function to stop resizing
+            function stopResize() {
+                if (!resizeActive) return;
+                
+                resizeActive = false;
+                
+                // Get the final dimensions for undo/redo
+                const finalWidth = parseInt(window.getComputedStyle(activeResizeStamp).width, 10);
+                const finalHeight = parseInt(window.getComputedStyle(activeResizeStamp).height, 10);
+                
+                // Only record if there was an actual change
+                if (finalWidth !== originalWidth || finalHeight !== originalHeight) {
+                    // Record resize action for undo/redo
+                    recordAction(ACTION_TYPES.RESIZE, {
+                        id: stampId,
+                        oldWidth: originalWidth,
+                        oldHeight: originalHeight,
+                        newWidth: finalWidth,
+                        newHeight: finalHeight
+                    });
+                }
+                
+                activeResizeStamp = null;
+                activeResizeType = null;
+                
+                // Remove event listeners
+                document.removeEventListener('mousemove', resizeStamp);
+                document.removeEventListener('touchmove', resizeStamp);
+                document.removeEventListener('mouseup', stopResize);
+                document.removeEventListener('touchend', stopResize);
+            }
+        }
+        
+        // Start dragging a stamp
+        function startDrag(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            // Skip if this is the resize handle
+            if (e.target.classList.contains('stamp-resize-handle-width') || 
+                e.target.classList.contains('stamp-resize-handle-height') || 
+                e.target.classList.contains('stamp-resize-handle-both') ||
+                e.target.tagName === 'I') return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            activeDragStamp = this;
+            dragActive = true;
+            
+            // Make sure this stamp is in edit mode
+            if (this.dataset.stampId !== activeStampId) {
+                enterStampEditMode(this.dataset.stampId);
+            }
+            
+            // Calculate the offset from the cursor to the top-left of the stamp
+            const rect = this.getBoundingClientRect();
+            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            
+            dragOffset.x = clientX - rect.left;
+            dragOffset.y = clientY - rect.top;
+            
+            // Get the stamp ID and original position for undo/redo
+            const stampId = this.dataset.stampId;
+            const stampIndex = stampedPositions.findIndex(s => s.id === stampId);
+            const originalX = stampedPositions[stampIndex].x;
+            const originalY = stampedPositions[stampIndex].y;
+            
+            // Add event listeners for moving and stopping
+            document.addEventListener('mousemove', dragStamp);
+            document.addEventListener('touchmove', dragStamp, { passive: false });
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+            
+            // Function to handle dragging the stamp
+            function dragStamp(e) {
+                if (!dragActive) return;
+                e.preventDefault();
+                
+                const currentClientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const currentClientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                const overlayRect = stampOverlay.getBoundingClientRect();
+                
+                // Calculate the new position
+                const newX = currentClientX - overlayRect.left - dragOffset.x;
+                const newY = currentClientY - overlayRect.top - dragOffset.y;
+                
+                // Update the stamp position
+                activeDragStamp.style.left = `${newX}px`;
+                activeDragStamp.style.top = `${newY}px`;
+                
+                // Update the position in stampedPositions
+                const stampIndex = stampedPositions.findIndex(s => s.id === stampId);
+                if (stampIndex !== -1) {
+                    stampedPositions[stampIndex].x = newX;
+                    stampedPositions[stampIndex].y = newY;
+                }
+            }
+            
+            // Function to stop dragging
+            function stopDrag() {
+                if (!dragActive) return;
+                
+                dragActive = false;
+                
+                // Get the final position for undo/redo
+                const stampIndex = stampedPositions.findIndex(s => s.id === stampId);
+                if (stampIndex !== -1) {
+                    const finalX = stampedPositions[stampIndex].x;
+                    const finalY = stampedPositions[stampIndex].y;
+                    
+                    // Only record if there was an actual change
+                    if (finalX !== originalX || finalY !== originalY) {
+                        // Record move action for undo/redo
+                        recordAction(ACTION_TYPES.MOVE, {
+                            id: stampId,
+                            oldX: originalX,
+                            oldY: originalY,
+                            newX: finalX,
+                            newY: finalY
+                        });
+                    }
+                }
+                
+                activeDragStamp = null;
+                
+                // Remove event listeners
+                document.removeEventListener('mousemove', dragStamp);
+                document.removeEventListener('touchmove', dragStamp);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchend', stopDrag);
+            }
+        }
+        
+        // Redraw stamps for the current page
+        function redrawStamps() {
+            // Clear the overlay
+            stampOverlay.innerHTML = '';
+            
+            // Add stamps for the current page
+            stampedPositions.forEach(stamp => {
+                if (stamp.page === currentPage) {
+                    createStampElement(stamp);
+                }
+            });
+        }
+        
+        // Create a new PDF with stamps and save it
+        async function saveStampedPdf() {
+            if (!pdfDoc || stampedPositions.length === 0) return;
+            
+            const savingDialog = Swal.fire({
+                title: 'جاري إنشاء ملف PDF',
+                html: 'يرجى الانتظار...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                let pdf = new jsPDF();
+                
+                // Delete the first empty page that jsPDF creates by default
+                pdf.deletePage(1);
+                
+                // Keep track of page dimensions for each PDF page
+                const pageDimensions = [];
+                
+                // First pass: gather all page dimensions
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.0 });
+                    pageDimensions.push({
+                        width: viewport.width,
+                        height: viewport.height
+                    });
+                }
+                
+                // Second pass: render each page with stamps
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    // Update loading message
+                    Swal.update({
+                        html: `جاري معالجة الصفحة ${i} من ${pdfDoc.numPages}...`
+                    });
+                    
+                    // Setup a canvas for rendering the PDF page
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Get the page
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
+                    
+                    // Set canvas dimensions
+                    tempCanvas.width = viewport.width;
+                    tempCanvas.height = viewport.height;
+                    
+                    // Render PDF page to canvas
+                    await page.render({
+                        canvasContext: tempCtx,
+                        viewport: viewport
+                    }).promise;
+                    
+                    // Draw stamps for this page
+                    const pageStamps = stampedPositions.filter(stamp => stamp.page === i);
+                    pageStamps.forEach(stamp => {
+                        // Calculate scaled position of stamp
+                        const scaleX = viewport.width / canvas.width;
+                        const scaleY = viewport.height / canvas.height;
+                        
+                        const scaledX = stamp.x * scaleX;
+                        const scaledY = stamp.y * scaleY;
+                        const scaledWidth = stamp.width * scaleX;
+                        const scaledHeight = stamp.height * scaleY;
+                        
+                        // Apply 3px padding (scaled)
+                        const padding = 3 * scaleX;
+                        const contentWidth = scaledWidth - (padding * 2);
+                        const contentHeight = scaledHeight - (padding * 2);
+                        
+                        // Set text properties
+                        tempCtx.font = `bold ${stamp.size * scaleX}px ${stamp.font}`;
+                        tempCtx.fillStyle = stamp.color;
+                        tempCtx.textBaseline = 'middle';
+                        tempCtx.textAlign = 'center'; // Center alignment
+                        tempCtx.direction = 'rtl'; // Set RTL direction explicitly
+                        
+                        // Create a temporary clipping region for text box
+                        tempCtx.save();
+                        tempCtx.beginPath();
+                        tempCtx.rect(scaledX + padding, scaledY + padding, contentWidth, contentHeight);
+                        tempCtx.clip();
+                        
+                        // Implement text wrapping for long text
+                        const textLines = wrapText(tempCtx, stamp.text, contentWidth - padding);  // -padding for some additional safe space
+                        
+                        // Adjust font size if needed to fit height
+                        const lineHeight = stamp.size * scaleX * 1.2; // Line height with spacing
+                        const totalTextHeight = lineHeight * textLines.length;
+                        let fontSize = stamp.size * scaleX;
+                        
+                        // If text is too tall, scale down the font size
+                        if (totalTextHeight > contentHeight) {
+                            const scaleFactor = contentHeight / totalTextHeight;
+                            fontSize *= scaleFactor * 0.9; // 0.9 for additional padding
+                            tempCtx.font = `bold ${fontSize}px ${stamp.font}`;
+                        }
+                        
+                        // Calculate adjusted line height
+                        const adjustedLineHeight = fontSize * 1.2;
+                        
+                        // Draw each line of text
+                        const startY = scaledY + padding + (contentHeight / 2) - ((textLines.length - 1) * adjustedLineHeight / 2);
+                        
+                        textLines.forEach((line, index) => {
+                            tempCtx.fillText(
+                                line, 
+                                scaledX + padding + contentWidth / 2, 
+                                startY + (index * adjustedLineHeight)
+                            );
+                        });
+                        
+                        // Restore the canvas state
+                        tempCtx.restore();
+                    });
+                    
+                    // Convert canvas to image data URL
+                    const imgData = tempCanvas.toDataURL('image/png', 1.0);
+                    
+                    // Calculate PDF page size based on page dimensions
+                    const pdfWidth = pageDimensions[i-1].width / 72 * 25.4; // Convert points to mm
+                    const pdfHeight = pageDimensions[i-1].height / 72 * 25.4; // Convert points to mm
+                    
+                    // Add a new page in the correct dimensions
+                    pdf.addPage([pdfWidth, pdfHeight]);
+                    
+                    // Add image to PDF
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                }
+                
+                // Save the PDF
+                const pdfName = pdfFileInput.files && pdfFileInput.files[0] ? 
+                    pdfFileInput.files[0].name.replace('.pdf', '_stamped.pdf') : 
+                    'stamped_document.pdf';
+                pdf.save(pdfName);
+                
+                // Show success message
+                Swal.fire({
+                    title: 'تم بنجاح!',
+                    text: 'تم حفظ ملف PDF المختوم بنجاح',
+                    icon: 'success',
+                    confirmButtonText: 'حسناً'
+                });
+                
+            } catch (error) {
+                console.error('Error saving PDF:', error);
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'حدث خطأ أثناء حفظ ملف PDF: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        }
+        
+        // Save stamped PDF button click handler
+        saveStampedPdfBtn.addEventListener('click', saveStampedPdf);
+        
+        // Export project as JSON file
+        exportProjectBtn.addEventListener('click', function() {
+            if (!checkPremiumAccess()) return;
+            
+            if (!(pdfDoc || selectedAnswerFields.length > 0)) return;
+            
+            try {
+                // Exit any active edit modes
+                if (activeFieldEditId) {
+                    exitFieldEditMode();
+                }
+                if (activeStampId) {
+                    exitStampEditMode();
+                }
+                
+                const projectData = {
+                    version: "1.0",
+                    fields: selectedAnswerFields,
+                    stamps: stampedPositions,
+                    config: {
+                        color: stampColorInput.value,
+                        size: stampSizeInput.value,
+                        font: stampFontInput.value,
+                        initialWidth: stampInitialWidthInput.value,
+                        initialHeight: stampInitialHeightInput.value,
+                        autoFit: autoFitCheckbox.checked,
+                        defaultFieldWidth: defaultFieldWidthInput.value,
+                        defaultFieldHeight: defaultFieldHeightInput.value
+                    }
+                };
+                
+                // Create JSON blob
+                const blob = new Blob([JSON.stringify(projectData, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                
+                // Create a temporary link and trigger download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pdf_stamping_project.json';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                // Show success message
+                Swal.fire({
+                    title: 'تم التصدير!',
+                    text: 'تم تصدير المشروع بنجاح',
+                    icon: 'success',
+                    confirmButtonText: 'حسناً',
+                    timer: 2000,
+                    timerProgressBar: true,
+                });
+                
+            } catch (error) {
+                console.error('Error exporting project:', error);
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'حدث خطأ أثناء تصدير المشروع: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        });
+        
+        // Trigger file input when import button is clicked
+        importProjectBtn.addEventListener('click', function() {
+            if (checkPremiumAccess()) {
+                projectFileInput.click();
+            }
+        });
+        
+        // Import project from JSON file
+        projectFileInput.addEventListener('change', function(e) {
+            if (!isPremiumUser) {
+                showPremiumDialog();
+                return;
+            }
+            
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const fileReader = new FileReader();
+                
+                fileReader.onload = function(event) {
+                    try {
+                        const projectData = JSON.parse(event.target.result);
+                        
+                        // Validate project data
+                        if (!projectData.version || !projectData.fields) {
+                            throw new Error('تنسيق ملف المشروع غير صالح');
+                        }
+                        
+                        // Import fields
+                        selectedAnswerFields = projectData.fields;
+                        
+                        // Import stamps if available
+                        if (projectData.stamps && Array.isArray(projectData.stamps)) {
+                            stampedPositions = projectData.stamps;
+                            
+                            // Ensure all stamps have the originalSize property
+                            stampedPositions.forEach(stamp => {
+                                if (!stamp.hasOwnProperty('originalSize')) {
+                                    stamp.originalSize = parseInt(stamp.size, 10);
+                                }
+                            });
+                            
+                            saveStampedPdfBtn.disabled = stampedPositions.length === 0;
+                        }
+                        
+                        // Import configuration if available
+                        if (projectData.config) {
+                            if (projectData.config.color) stampColorInput.value = projectData.config.color;
+                            if (projectData.config.size) stampSizeInput.value = projectData.config.size;
+                            if (projectData.config.font) stampFontInput.value = projectData.config.font;
+                            if (projectData.config.initialWidth) stampInitialWidthInput.value = projectData.config.initialWidth;
+                            if (projectData.config.initialHeight) stampInitialHeightInput.value = projectData.config.initialHeight;
+                            if (typeof projectData.config.autoFit === 'boolean') autoFitCheckbox.checked = projectData.config.autoFit;
+                            if (projectData.config.defaultFieldWidth) defaultFieldWidthInput.value = projectData.config.defaultFieldWidth;
+                            if (projectData.config.defaultFieldHeight) defaultFieldHeightInput.value = projectData.config.defaultFieldHeight;
+                        }
+                        
+                        // Update UI
+                        updateFieldsUI();
+                        redrawFields();
+                        redrawStamps();
+                        
+                        // Enable export
+                        exportProjectBtn.disabled = false;
+                        
+                        // Success message
+                        Swal.fire({
+                            title: 'تم الاستيراد!',
+                            html: `
+                                تم استيراد المشروع بنجاح!<br>
+                                ${selectedAnswerFields.length} حقل تم استيراده<br>
+                                ${stampedPositions.length} ختم تم استيراده
+                            `,
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        });
+                        
+                    } catch (error) {
+                        console.error('Error importing project:', error);
+                        Swal.fire({
+                            title: 'خطأ',
+                            text: 'حدث خطأ أثناء استيراد المشروع: ' + error.message,
+                            icon: 'error',
+                            confirmButtonText: 'حسناً'
+                        });
+                    }
+                };
+                
+                fileReader.readAsText(file);
+                
+                // Reset the input so the same file can be selected again
+                this.value = '';
+            }
+        });
+        
+        // Initialize the UI on page load
+        initializeUI();
+    </script>
+</body>
+</html>
