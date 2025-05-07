@@ -1596,9 +1596,9 @@
   ],
   "stamps": [],
   "config": {
-    "color": "#228B22",
-    "size": "25",
-    "font": "Scheherazade New",
+    "color": "#ff0000",
+    "size": "22",
+    "font": "Cairo",
     "initialWidth": "150",
     "initialHeight": "40",
     "autoFit": true,
